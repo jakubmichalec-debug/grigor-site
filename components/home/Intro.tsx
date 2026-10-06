@@ -8,6 +8,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import { EASE, SCROLL } from "@/lib/motion/tokens";
 import { useReducedMotion } from "@/lib/motion/useReducedMotion";
+import { asset } from "@/lib/media/asset";
 import { getSound, setSound, useSound } from "@/lib/media/sound";
 import { prefersStills, useOnScreen } from "@/lib/media/useOnScreen";
 import s from "./Intro.module.css";
@@ -86,14 +87,28 @@ const tileNo = (i: number) => String(i + 1).padStart(2, "0");
  */
 const REEL: { src: string; type: string; media?: string }[] = [
   {
-    src: "/hero/reel-720.webm",
+    src: asset("/hero/reel-720.webm"),
     type: 'video/webm; codecs="vp9, opus"',
     media: "(max-width: 900px)",
   },
-  { src: "/hero/reel-720.mp4", type: "video/mp4", media: "(max-width: 900px)" },
-  { src: "/hero/reel-1080.webm", type: 'video/webm; codecs="vp9, opus"' },
-  { src: "/hero/reel-1080.mp4", type: "video/mp4" },
+  {
+    src: asset("/hero/reel-720.mp4"),
+    type: "video/mp4",
+    media: "(max-width: 900px)",
+  },
+  {
+    src: asset("/hero/reel-1080.webm"),
+    type: 'video/webm; codecs="vp9, opus"',
+  },
+  { src: asset("/hero/reel-1080.mp4"), type: "video/mp4" },
 ];
+
+/**
+ * The reel's first frame, handed to the stylesheet as a custom property. It
+ * cannot be written there: a url() in CSS is an address fixed when the file is
+ * written, and this one depends on where the site is mounted.
+ */
+const POSTER = { "--poster": `url("${asset("/hero/poster.jpg")}")` } as CSSProperties;
 
 /**
  * §2.2 — "ramp gain over 400ms rather than cutting, so a mid-scroll toggle
@@ -402,7 +417,7 @@ export function Intro() {
                     is no "below the fold" for lazy loading to wait on.
                   */}
                   <Image
-                    src={`/wall/${tileNo(i)}.jpg`}
+                    src={asset(`/wall/${tileNo(i)}.jpg`)}
                     alt=""
                     fill
                     sizes="(max-width: 900px) 28vw, 15vw"
@@ -424,7 +439,7 @@ export function Intro() {
             painted at the size the tile is at rest and goes soft blown up
             sevenfold, where a decoded frame is drawn at whatever size it lands.
           */}
-          <div ref={hero} className={s.hero}>
+          <div ref={hero} className={s.hero} style={POSTER}>
             <video
               ref={reel}
               className={s.reel}

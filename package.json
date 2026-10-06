@@ -10,6 +10,7 @@
     "check:helix": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/helix.check.mts",
     "check:camera": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/camera.check.mts",
     "build:camera": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/camera.assets.mts",
+    "deploy": "node scripts/deploy-pages.mjs",
     "check": "tsc --noEmit && eslint app components lib && npm run check:helix && npm run check:camera"
   },
   "dependencies": {

@@ -7,6 +7,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import { DUR, EASE, SCROLL } from "@/lib/motion/tokens";
 import { useReducedMotion } from "@/lib/motion/useReducedMotion";
+import { asset } from "@/lib/media/asset";
 import {
   HELIX_COPY_BACK_OPACITY,
   HELIX_TILT,
@@ -485,7 +486,7 @@ export function Showcase() {
                   where it is looked at hardest.
                 */}
                 <Image
-                  src={step.src}
+                  src={asset(step.src)}
                   alt={step.alt}
                   fill
                   sizes="(max-width: 900px) 46vw, 28vw"

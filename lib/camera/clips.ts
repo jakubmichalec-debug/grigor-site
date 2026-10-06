@@ -11,6 +11,8 @@
  * the stills, encode_clips.py for the footage).
  */
 
+import { asset } from "@/lib/media/asset";
+
 export type Clip = {
   id: string;
   /** Shown under the camera and read out to assistive tech. */
@@ -39,9 +41,9 @@ const STILL = { width: 1200, height: 800 };
 const clip = (id: string, title: string): Clip => ({
   id,
   title,
-  still: `/clips/${id}.jpg`,
-  video: `/clips/${id}.mp4`,
-  loop: `/clips/${id}-loop.mp4`,
+  still: asset(`/clips/${id}.jpg`),
+  video: asset(`/clips/${id}.mp4`),
+  loop: asset(`/clips/${id}-loop.mp4`),
   ...STILL,
 });
 

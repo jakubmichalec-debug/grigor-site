@@ -8,6 +8,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import { DUR, EASE, SCROLL } from "@/lib/motion/tokens";
 import { useReducedMotion } from "@/lib/motion/useReducedMotion";
+import { asset } from "@/lib/media/asset";
 import s from "./Reviews.module.css";
 
 gsap.registerPlugin(ScrollTrigger, useGSAP);
@@ -239,7 +240,13 @@ export function Reviews() {
                 } as CSSProperties
               }
             >
-              <Image src={frame.src} alt="" fill sizes="18vw" className={s.scatterImg} />
+              <Image
+                src={asset(frame.src)}
+                alt=""
+                fill
+                sizes="18vw"
+                className={s.scatterImg}
+              />
             </span>
           ))}
         </div>
@@ -332,7 +339,7 @@ export function Reviews() {
             <div className={s.media}>
               {line.still ? (
                 <Image
-                  src={line.still}
+                  src={asset(line.still)}
                   alt=""
                   fill
                   sizes="(max-width: 600px) 82vw, (max-width: 900px) 36vw, 460px"

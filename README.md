@@ -20,6 +20,18 @@ npm run check   # types, lint, and the geometry checks for the spiral and the ca
 npm run build   # production build
 ```
 
+## Deploying
+
+```bash
+npm run deploy
+```
+
+Builds a static copy of the site and publishes it to the `gh-pages` branch,
+which GitHub Pages serves at https://jakubmichalec-debug.github.io/grigor-site/.
+Pages hosts a project under `/<repository>`, so that build sets a base path;
+`lib/media/asset.ts` is what keeps the images and videos pointing at the right
+place when it does.
+
 ## Where things are
 
 | Path | What it holds |

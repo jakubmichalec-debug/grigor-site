@@ -112,6 +112,7 @@
  * The background is the reel's own first frame over the old placeholder
  * gradient, so the tile is never empty: the gradient is there at once, the
  * frame as soon as it loads, and the reel paints over both when it has data.
+ * The frame arrives as --poster, set by the component, which knows its address.
  */
 .hero {
   position: absolute;
@@ -123,7 +124,7 @@
   translate: -50% -50%;
   overflow: hidden;
   background:
-    url("/hero/poster.jpg") center / cover no-repeat,
+    var(--poster, none) center / cover no-repeat,
     linear-gradient(142deg, #d4671f 0%, #8a2f10 38%, #1b2f3c 100%);
 }
 

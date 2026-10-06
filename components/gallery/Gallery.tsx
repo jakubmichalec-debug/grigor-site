@@ -8,6 +8,7 @@ import { Flip } from "gsap/Flip";
 import { useGSAP } from "@gsap/react";
 import { DUR, EASE } from "@/lib/motion/tokens";
 import { useReducedMotion } from "@/lib/motion/useReducedMotion";
+import { asset } from "@/lib/media/asset";
 import s from "./Gallery.module.css";
 
 gsap.registerPlugin(Flip, useGSAP);
@@ -128,7 +129,7 @@ const PIECES: Piece[] = [
 
 /** `public/gallery/01.jpg` … — named by id so the manifest above is the only list. */
 const srcOf = (piece: Piece) =>
-  `/gallery/${String(piece.id).padStart(2, "0")}.jpg`;
+  asset(`/gallery/${String(piece.id).padStart(2, "0")}.jpg`);
 
 export function Gallery() {
   const root = useRef<HTMLDivElement>(null);

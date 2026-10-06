@@ -14,6 +14,7 @@ import { DrawSVGPlugin } from "gsap/DrawSVGPlugin";
 import { useGSAP } from "@gsap/react";
 import { EASE, SCROLL } from "@/lib/motion/tokens";
 import { useReducedMotion } from "@/lib/motion/useReducedMotion";
+import { asset } from "@/lib/media/asset";
 import { prefersStills, useOnScreen } from "@/lib/media/useOnScreen";
 import { CLIPS, CLIP_COUNT, stepClip, type Clip } from "@/lib/camera/clips";
 import {
@@ -390,7 +391,7 @@ export function Camera() {
           <Image
             data-photo=""
             className={s.photo}
-            src="/camera/a6700.png"
+            src={asset("/camera/a6700.png")}
             alt=""
             width={FRAME.w}
             height={FRAME.h}
