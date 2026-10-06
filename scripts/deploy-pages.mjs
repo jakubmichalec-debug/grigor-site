@@ -10,7 +10,7 @@
  * Nothing in the working tree or on the current branch is touched: the commit
  * is assembled from `out/` through a throwaway index.
  */
-import { execFileSync } from "node:child_process";
+import { execFileSync, execSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -18,8 +18,13 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const out = path.join(root, "out");
 
+/* stderr is kept out of the way: git uses it for line-ending notices, one per file. */
 const git = (args, env = {}) =>
-  execFileSync("git", args, { cwd: root, env: { ...process.env, ...env } })
+  execFileSync("git", args, {
+    cwd: root,
+    env: { ...process.env, ...env },
+    stdio: ["ignore", "pipe", "pipe"],
+  })
     .toString()
     .trim();
 
@@ -29,11 +34,10 @@ const basePath = `/${repo}`;
 
 console.log(`Building for ${basePath} ...`);
 fs.rmSync(out, { recursive: true, force: true });
-execFileSync("npx", ["next", "build"], {
+/* Through a shell, because npx is a .cmd on Windows and only a shell can start one. */
+execSync("npx next build", {
   cwd: root,
   stdio: "inherit",
-  /* npx is a .cmd on Windows, which only a shell can start. */
-  shell: process.platform === "win32",
   env: { ...process.env, NEXT_OUTPUT: "export", NEXT_PUBLIC_BASE_PATH: basePath },
 });
 
