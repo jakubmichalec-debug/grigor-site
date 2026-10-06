@@ -1,0 +1,181 @@
+/*
+ * Full-screen clip viewer. Fixed to the viewport and portalled to <body>, so
+ * nothing in the camera's stacking context can reach it.
+ *
+ * The overlay root itself paints nothing and does not capture pointer events —
+ * the backdrop under it does. That separation is what lets the clip grow out of
+ * the camera before the page has finished darkening.
+ */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  pointer-events: none;
+}
+
+/*
+ * Starts hidden here rather than in a GSAP `from`. Tween start values are only
+ * written on the first ticker tick, so a `fromTo` leaves one frame of fully
+ * opaque backdrop before the clip has begun to move — which blacks out the
+ * camera exactly when the clip is meant to be lifting off it.
+ */
+.backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgb(10 10 9 / 0.96);
+  backdrop-filter: blur(10px);
+  cursor: zoom-out;
+  pointer-events: auto;
+  opacity: 0;
+  visibility: hidden;
+}
+
+/*
+ * Overlay furniture — caption and close button. Grouped by class because they
+ * share one schedule: both arrive after the clip has finished opening, so they
+ * do not compete with the zoom for attention. ClipViewer queries this class, so
+ * it must exist here; a CSS-module class that is only referenced from JS and
+ * never declared resolves to `undefined` and silently matches nothing.
+ */
+.chrome {
+  opacity: 0;
+  visibility: hidden;
+}
+
+/*
+ * The clip. Its box is animated from the camera's screen rect out to the full
+ * viewport — see the timeline in ClipViewer.tsx for why the box moves rather
+ * than a transform. Inline top/left/width/height are written by GSAP, so the
+ * only job here is what the box looks like, not where it is.
+ */
+.frame {
+  position: absolute;
+  overflow: hidden;
+  background: var(--ink);
+  pointer-events: auto;
+  will-change: top, left, width, height;
+}
+
+/*
+ * The still: `cover` at both ends of the animation. Matching the camera
+ * screen's fit is what makes the first frame of the zoom indistinguishable from
+ * the screen it grew out of.
+ *
+ * It only has to carry the zoom. Once the footage is running it steps aside —
+ * a covered still would otherwise show around the edges of a clip that is
+ * letterboxed inside the same box.
+ */
+.media {
+  object-fit: cover;
+  transition: opacity var(--d-reveal) var(--e-expo);
+}
+
+.media[data-covered="true"] {
+  opacity: 0;
+}
+
+/*
+ * The footage: `contain`, on the frame's own ink ground. Cropping was the
+ * agreed behaviour while these were placeholders; with real edits the framing
+ * is the work, titles sit near the edges, and one clip is vertical — so the
+ * whole picture is shown and the bars are simply the colour of the page.
+ *
+ * Hidden until frames are arriving and the box has finished opening, then
+ * faded over the still rather than cut to.
+ */
+.footage {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  opacity: 0;
+  cursor: pointer;
+  transition: opacity var(--d-reveal) var(--e-expo);
+}
+
+.footage[data-live="true"] {
+  opacity: 1;
+}
+
+.meta {
+  position: absolute;
+  left: clamp(16px, 3vw, 40px);
+  bottom: clamp(16px, 3vw, 40px);
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  pointer-events: none;
+  /* The clip is behind this; a plain shadow keeps the type legible on any frame. */
+  text-shadow: 0 1px 12px rgb(0 0 0 / 0.9);
+}
+
+.title,
+.count {
+  font: 500 10.5px/1 var(--font-mono), ui-monospace, monospace;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgb(242 239 231 / 0.75);
+}
+
+.count {
+  color: rgb(242 239 231 / 0.45);
+}
+
+.close {
+  position: absolute;
+  top: clamp(16px, 3vw, 40px);
+  right: clamp(16px, 3vw, 40px);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  /* Comfortably past the 44px touch minimum on every axis. */
+  min-width: 44px;
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 1px solid var(--line);
+  background: rgb(10 10 9 / 0.55);
+  backdrop-filter: blur(6px);
+  color: rgb(242 239 231 / 0.75);
+  cursor: pointer;
+  pointer-events: auto;
+  transition:
+    color var(--d-hover) var(--e-quart),
+    border-color var(--d-hover) var(--e-quart);
+}
+
+.close:hover,
+.close:focus-visible {
+  color: var(--paper);
+  border-color: rgb(242 239 231 / 0.45);
+}
+
+.closeLabel {
+  font: 500 10px/1 var(--font-mono), ui-monospace, monospace;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.closeIcon {
+  width: 14px;
+  height: 14px;
+}
+
+@media (max-width: 900px) {
+  .closeLabel {
+    /*
+     * Hidden, not removed: the button keeps an accessible name from its text
+     * content for screen readers while the icon carries it visually.
+     */
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .close {
+    padding: 12px;
+  }
+}

@@ -1,0 +1,55 @@
+/*
+ * Fixed, not sticky: it has to survive the hero's pin ending and the hero
+ * scrolling away, which no in-flow position can do. --t is its distance from
+ * the top of the viewport, driven by scroll; --in is the fade in.
+ *
+ * There is no fade out. The headline leaves by being pushed off the top by the
+ * showcase's bottom edge, the way a sticky element does — see Brandmark.tsx.
+ *
+ * --in defaults to 1, i.e. visible: nothing is hidden in CSS, only by the
+ * script and only once motion is confirmed on. That is what leaves the
+ * headline readable when JS never arrives, and it costs no flash because
+ * useGSAP runs in useLayoutEffect, before paint.
+ */
+.mark {
+  position: fixed;
+  left: clamp(16px, 2.2vw, 34px);
+  top: var(--t, 58vh);
+  z-index: 60;
+  margin: 0;
+  font: 700 clamp(46px, 10.5vw, 168px) / 0.86 var(--font-archivo), sans-serif;
+  letter-spacing: -0.045em;
+  text-transform: uppercase;
+  color: var(--paper);
+  pointer-events: none;
+  opacity: var(--in, 1);
+  will-change: opacity;
+}
+
+.l1,
+.l2 {
+  display: block;
+}
+
+/*
+ * The second line hangs off the first's left edge. Purely typographic — it
+ * gives the block a diagonal that reads against the helix's own weave.
+ */
+.l2 {
+  margin-left: 0.32em;
+  color: rgb(242 239 231 / 0.42);
+}
+
+/* ── Reduced motion (§7.2) ─────────────────────────────────────────────── */
+
+/*
+ * Nothing travels and nothing is scroll-linked, so the headline has no fixed
+ * layer to live on. It becomes an ordinary block between the two sections —
+ * same words, same order, no choreography.
+ */
+.mark[data-reduced="true"] {
+  position: static;
+  opacity: 1;
+  padding: 14vh clamp(16px, 2.2vw, 34px) 6vh;
+  will-change: auto;
+}

@@ -1,0 +1,189 @@
+/*
+ * The gallery. Each category owns a colour, painted under its tiles: it is what
+ * shows while a picture loads, so a filter stays legible without reading labels
+ * even before the stills arrive.
+ *
+ *   Sports  green   Brands  orange (the site accent)   Custom  red
+ */
+.page {
+  min-height: 100svh;
+  background: var(--ink);
+  color: var(--paper);
+  /* Bottom room for the floating filter bar, which would otherwise cover tiles. */
+  padding: clamp(28px, 5vh, 70px) clamp(16px, 3vw, 48px) clamp(150px, 22vh, 240px);
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 18px;
+  max-width: 1600px;
+  margin: 0 auto clamp(30px, 6vh, 70px);
+}
+
+.back,
+.count {
+  font: 500 10.5px/1 var(--font-mono), ui-monospace, monospace;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.back {
+  transition: color var(--d-hover) var(--e-quart);
+}
+
+.back:hover,
+.back:focus-visible {
+  color: var(--paper);
+}
+
+.title {
+  font: 700 clamp(30px, 5vw, 74px) / 0.95 var(--font-archivo), sans-serif;
+  letter-spacing: -0.04em;
+  text-transform: uppercase;
+}
+
+/*
+ * Flex, not grid. Flip animates tiles between layout positions, and a wrapping
+ * flex row is what produces the uneven reflow the effect is built around — a
+ * fixed grid moves every tile the same distance and the motion reads as a table
+ * redrawing itself.
+ */
+.grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(10px, 1.2vw, 20px);
+  max-width: 1600px;
+  margin: 0 auto;
+  list-style: none;
+}
+
+/*
+ * Sized from the aspect ratio so the row is ragged. `flex-grow` lets the last
+ * row fill rather than leaving a gap, which is what stops a filtered set from
+ * looking like it lost something.
+ */
+.piece {
+  position: relative;
+  flex: 1 1 auto;
+  aspect-ratio: var(--ratio, 4 / 3);
+  min-width: clamp(180px, 20vw, 320px);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--muted);
+  will-change: transform, opacity;
+}
+
+.piece[data-category="Sports"] {
+  background: linear-gradient(150deg, #2f7d4f, #1c4f32);
+}
+
+.piece[data-category="Brands"] {
+  background: linear-gradient(150deg, #d8672c, #a03d14);
+}
+
+.piece[data-category="Custom"] {
+  background: linear-gradient(150deg, #c2382f, #7d1f1a);
+}
+
+/*
+ * `display: none`, not removal from the DOM. Flip reads the difference between
+ * two states of the *same* elements — unmount them and the returning tiles are
+ * strangers it cannot animate in.
+ */
+.piece[data-hidden="true"] {
+  display: none;
+}
+
+.pieceImage {
+  object-fit: cover;
+}
+
+/*
+ * A short falloff under the label. The type has its own shadow, which was
+ * enough on flat colour and is not on a photograph of snow or sky.
+ */
+.piece::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 34%;
+  background: linear-gradient(to top, rgb(10 10 9 / 0.5), transparent);
+  pointer-events: none;
+}
+
+.pieceLabel {
+  position: absolute;
+  z-index: 1;
+  left: 14px;
+  bottom: 12px;
+  font: 700 10px/1 var(--font-mono), ui-monospace, monospace;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgb(242 239 231 / 0.82);
+  text-shadow: 0 1px 8px rgb(0 0 0 / 0.55);
+}
+
+/* ── the floating filter bar ───────────────────────────────────────────── */
+
+.filters {
+  position: fixed;
+  left: 50%;
+  bottom: clamp(18px, 4vh, 42px);
+  transform: translateX(-50%);
+  z-index: 100;
+  display: flex;
+  gap: 4px;
+  padding: 6px;
+  border-radius: 999px;
+  border: 1px solid rgb(242 239 231 / 0.14);
+  /* Translucent so the tiles scrolling under it stay half-visible. */
+  background: rgb(10 10 9 / 0.62);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 18px 44px -20px rgb(0 0 0 / 0.9);
+}
+
+.filter {
+  min-height: 44px;
+  padding: 12px 20px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  cursor: pointer;
+  font: 700 11px/1 var(--font-mono), ui-monospace, monospace;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgb(242 239 231 / 0.6);
+  transition:
+    color var(--d-hover) var(--e-quart),
+    background-color var(--d-hover) var(--e-quart);
+}
+
+.filter:hover,
+.filter:focus-visible {
+  color: var(--paper);
+}
+
+.filter[data-active="true"] {
+  background: var(--accent);
+  color: var(--ink);
+}
+
+.filter:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (max-width: 700px) {
+  .filter {
+    padding: 12px 13px;
+    letter-spacing: 0.1em;
+  }
+
+  .piece {
+    min-width: 42vw;
+  }
+}

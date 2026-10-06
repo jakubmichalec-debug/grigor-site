@@ -1,0 +1,97 @@
+:root {
+  color-scheme: dark;
+
+  /* §1.1 easing set */
+  --e-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --e-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --e-inout: cubic-bezier(0.76, 0, 0.24, 1);
+
+  /* §1.2 duration scale — six steps only */
+  --d-hover: 200ms;
+  --d-stagger: 320ms;
+  --d-reveal: 480ms;
+  --d-overlay: 700ms;
+  --d-curtain: 1000ms;
+  --d-preload: 1400ms;
+
+  /* palette */
+  --ink: #0a0a09;
+  --ink-2: #141412;
+  --ink-3: #1e1e1a;
+  --paper: #f2efe7;
+  --muted: #8c8678;
+  --accent: #c85a24;
+  /*
+   * The accent, darkened for text on a light ground. --accent is 4.53:1 on ink
+   * and passes, but only 3.70:1 on paper — fine for large display type, short of
+   * AA for anything at body size. This one is 5.6:1 on paper. Same hue, so the
+   * two read as one colour; use --accent on dark, --accent-deep on light.
+   */
+  --accent-deep: #9c4419;
+  --line: rgb(242 239 231 / 0.13);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  background: var(--ink);
+}
+
+body {
+  min-height: 100svh;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--font-archivo), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+/*
+ * Elements that animate themselves in.
+ *
+ * Hidden by default, so the server-rendered HTML never paints them in their
+ * finished state a beat before JS hides them again — that flash was visible on
+ * the header. Two escape hatches keep the content from being stranded: the
+ * reduced-motion query below, and the <noscript> override in the root layout.
+ */
+.enters-with-motion {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .enters-with-motion {
+    opacity: 1;
+  }
+}
+
+/* §7.2 — reduced motion is honoured globally, not per component. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 200ms !important;
+  }
+
+  html {
+    scroll-behavior: auto !important;
+  }
+}

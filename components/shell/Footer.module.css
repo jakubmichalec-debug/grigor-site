@@ -1,0 +1,154 @@
+/*
+ * Back on ink after the light stretch of reviews and contact, so the page opens
+ * and closes dark and the pale middle reads as an interlude.
+ */
+.footer {
+  background: var(--ink);
+  color: var(--paper);
+  padding: clamp(60px, 10vh, 130px) clamp(16px, 4vw, 64px) clamp(28px, 4vh, 48px);
+}
+
+.top {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) repeat(3, minmax(0, 1fr));
+  gap: clamp(34px, 5vw, 80px);
+  max-width: 1400px;
+  margin: 0 auto;
+  padding-bottom: clamp(40px, 7vh, 90px);
+  border-bottom: 1px solid var(--line);
+}
+
+.brand {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.wordmark {
+  font: 700 clamp(30px, 3.4vw, 52px) / 0.9 var(--font-archivo), sans-serif;
+  letter-spacing: -0.04em;
+  text-transform: uppercase;
+  color: var(--paper);
+}
+
+.blurb {
+  max-width: 32ch;
+  font: 500 13px/1.6 var(--font-archivo), sans-serif;
+  color: rgb(242 239 231 / 0.5);
+  text-wrap: pretty;
+}
+
+/* The two link columns share the grid with the socials, hence `display: contents`. */
+.groups {
+  display: contents;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.groupTitle {
+  font: 700 10px/1 var(--font-mono), ui-monospace, monospace;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  list-style: none;
+}
+
+.link {
+  font: 500 13px/1 var(--font-archivo), sans-serif;
+  color: rgb(242 239 231 / 0.72);
+  transition: color var(--d-hover) var(--e-quart);
+}
+
+.link:hover,
+.link:focus-visible {
+  color: var(--paper);
+}
+
+.socials {
+  display: flex;
+  gap: 12px;
+  list-style: none;
+}
+
+/*
+ * 44px square so the target clears the touch minimum, while the glyph inside
+ * stays small — the box is for fingers, the icon is for eyes.
+ */
+.social {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: rgb(242 239 231 / 0.62);
+  transition:
+    color var(--d-hover) var(--e-quart),
+    border-color var(--d-hover) var(--e-quart),
+    transform var(--d-hover) var(--e-quart);
+}
+
+.social svg {
+  width: 16px;
+  height: 16px;
+}
+
+.social:hover,
+.social:focus-visible {
+  color: var(--ink);
+  background: var(--accent);
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.bottom {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 16px;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding-top: clamp(20px, 3vh, 34px);
+  font: 500 11px/1 var(--font-mono), ui-monospace, monospace;
+  letter-spacing: 0.12em;
+  color: rgb(242 239 231 / 0.38);
+}
+
+.legal {
+  display: flex;
+  gap: 22px;
+}
+
+.legal .link {
+  font: inherit;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .top {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 34px;
+  }
+
+  .brand {
+    grid-column: 1 / -1;
+  }
+}

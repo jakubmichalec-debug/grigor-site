@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+doc-page:not(:defined){visibility:hidden}
+body{margin:0;font-family:'Archivo',Helvetica,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#a34a1f;text-decoration:none;border-bottom:1px solid rgba(163,74,31,.35)}
+a:hover{color:#7d3512;border-bottom-color:#7d3512}
+</style>
+<script src="./doc-page.js"></script>
+</helmet>
+
+<doc-page size="letter" margin="0.7in">
+
+<div slot="header" style="display:flex;justify-content:space-between;align-items:baseline;padding-bottom:16px;border-bottom:1px solid #d8d3c8;font:500 9.5px/1 'JetBrains Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:#7a7466">
+  <span style="white-space:nowrap">Motion &amp; Interaction Spec</span>
+  <span style="white-space:nowrap">layrmedia.com</span>
+</div>
+
+<div slot="footer" style="display:flex;justify-content:space-between;align-items:baseline;padding-top:14px;border-top:1px solid #d8d3c8;font:500 9.5px/1 'JetBrains Mono',monospace;letter-spacing:.08em;color:#8c8678">
+  <span>Rev. A — Aug 2026</span>
+  <span>Reference document. Not affiliated with LAYR Media.</span>
+</div>
+
+<h1 style="font:700 41px/1.02 'Archivo',sans-serif;letter-spacing:-.025em;margin:14px 0 14px;color:#141412;text-wrap:balance">Motion &amp; Interaction Spec:<br />layrmedia.com</h1>
+
+<p style="font:500 11px/1.5 'JetBrains Mono',monospace;letter-spacing:.05em;text-transform:uppercase;color:#a34a1f;margin:0 0 22px">Deep spec — preloader &amp; audio gate · WebGL model · video hero · camera parallax<br />Plus motion inventory for all five pages</p>
+
+<p style="font-size:14.5px;line-height:1.62;margin:0 0 12px;color:#26251f">layrmedia.com is a Next.js site for a Toronto photography and video studio, built by <a href="https://www.lumina-design.co/">Lumina</a>. Its motion design rests on one idea: the site behaves like a piece of film equipment. You are gated at the door and asked whether you want sound, an object loads before the page does, and almost every subsequent transition is driven by scroll position rather than by a clock. Nothing plays at you; you crank it.</p>
+
+<p style="font-size:14.5px;line-height:1.62;margin:0 0 26px;color:#26251f">This document specifies that behaviour precisely enough to rebuild. It covers the global motion system first, then the four subsystems in depth, then a page-by-page inventory, and closes with performance, accessibility and QA requirements.</p>
+
+<div style="background:#f0ece2;border-left:2px solid #a34a1f;padding:15px 18px;margin:0 0 30px;break-inside:avoid;orphans:3;widows:3">
+  <p style="font:700 10px/1 'JetBrains Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:#a34a1f;margin:0 0 8px">How to read this document</p>
+  <p style="font-size:13px;line-height:1.55;margin:0 0 8px;color:#3a382f">Every row is tagged for provenance. <strong style="font-weight:600">OBS</strong> means the behaviour is directly observable on the live site. <strong style="font-weight:600">INF</strong> means the behaviour is inferred from the markup, asset names and loading order, and should be confirmed against the original before it becomes acceptance criteria.</p>
+  <p style="font-size:13px;line-height:1.55;margin:0;color:#3a382f">Durations and easings are <strong style="font-weight:600">prescriptive targets</strong>, not measurements pulled from the source. They are tuned to reproduce the observed feel. Treat them as the spec to build to; a developer can move any of them within ±20% without breaking the system.</p>
+</div>
+
+<h2 style="font:600 24px/1.15 'Archivo',sans-serif;letter-spacing:-.015em;margin:0 0 12px;color:#141412;padding-bottom:8px;border-bottom:2px solid #141412">1 — Global motion system</h2>
+
+<p style="font-size:14.5px;line-height:1.62;margin:0 0 16px;color:#26251f">Set these primitives up before building any section. Everything downstream references them by name.</p>
+
+<h3 style="font:600 15px/1.3 'Archivo',sans-serif;margin:0 0 8px;color:#141412">1.1 Easing set</h3>
+
+<table style="width:100%;border-collapse:collapse;margin:0 0 20px">
+<thead><tr>
+<th style="text-align:left;font:600 9.5px/1.2 'JetBrains Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:#7a7466;padding:0 10px 7px 0;border-bottom:1.5px solid #141412">Token</th>
+<th style="text-align:left;font:600 9.5px/1.2 'JetBrains Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:#7a7466;padding:0 10px 7px;border-bottom:1.5px solid #141412">Curve</th>
+<th style="text-align:left;font:600 9.5px/1.2 'JetBrains Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:#7a7466;padding:0 0 7px 10px;border-bottom:1.5px solid #141412">Used for</th>
+</tr></thead>
+<tbody>
+<tr>
+<td style="padding:8px 10px 8px 0;border-bottom:1px solid #e4e0d7;vertical-align:top;font:500 11.5px/1.45 'JetBrains Mono',monospace;color:#141412">--e-expo</td>
+<td style="padding:8px 10px;border-bottom:1px solid #e4e0d7;vertical-align:top;font:400 11px/1.45 'JetBrains Mono',monospace;color:#3a382f">cubic-bezier(.16,1,.3,1)</td>
+<td style="padding:8px 0 8px 10px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.5;color:#26251f">Entrances, curtain reveals, text rises. The default.</td>
+</tr>
+<tr>
+<td style="padding:8px 10px 8px 0;border-bottom:1px solid #e4e0d7;vertical-align:top;font:500 11.5px/1.45 'JetBrains Mono',monospace;color:#141412">--e-quart</td>
+<td style="padding:8px 10px;border-bottom:1px solid #e4e0d7;vertical-align:top;font:400 11px/1.45 'JetBrains Mono',monospace;color:#3a382f">cubic-bezier(.25,1,.5,1)</td>
+<td style="padding:8px 0 8px 10px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.5;color:#26251f">Hovers, small UI state changes, button fills.</td>
+</tr>
+<tr>
+<td style="padding:8px 10px 8px 0;border-bottom:1px solid #e4e0d7;vertical-align:top;font:500 11.5px/1.45 'JetBrains Mono',monospace;color:#141412">--e-inout</td>
+<td style="padding:8px 10px;border-bottom:1px solid #e4e0d7;vertical-align:top;font:400 11px/1.45 'JetBrains Mono',monospace;color:#3a382f">cubic-bezier(.76,0,.24,1)</td>
+<td style="padding:8px 0 8px 10px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.5;color:#26251f">Full-screen overlays in and out: menu, project modal, page transition.</td>
+</tr>
+<tr>
+<td style="padding:8px 10px 8px 0;border-bottom:1px solid #e4e0d7;vertical-align:top;font:500 11.5px/1.45 'JetBrains Mono',monospace;color:#141412">linear</td>
+<td style="padding:8px 10px;border-bottom:1px solid #e4e0d7;vertical-align:top;font:400 11px/1.45 'JetBrains Mono',monospace;color:#3a382f">linear</td>
+<td style="padding:8px 0 8px 10px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.5;color:#26251f">Marquees and every scroll-linked property. Never ease a value the user is scrubbing.</td>
+</tr>
+</tbody>
+</table>
+
+<h3 style="font:600 15px/1.3 'Archivo',sans-serif;margin:0 0 8px;color:#141412">1.2 Duration scale</h3>
+
+<p style="font-size:14.5px;line-height:1.62;margin:0 0 10px;color:#26251f">Six steps only. Anything outside the scale needs a reason written next to it in code.</p>
+
+<div style="display:flex;flex-wrap:wrap;gap:8px;margin:0 0 20px;break-inside:avoid">
+  <div style="flex:1 1 90px;background:#f0ece2;padding:11px 12px"><p style="font:700 15px/1 'JetBrains Mono',monospace;color:#141412;margin:0 0 5px">200ms</p><p style="font-size:11px;line-height:1.35;color:#5c5849;margin:0">Hover, focus, toggle</p></div>
+  <div style="flex:1 1 90px;background:#f0ece2;padding:11px 12px"><p style="font:700 15px/1 'JetBrains Mono',monospace;color:#141412;margin:0 0 5px">320ms</p><p style="font-size:11px;line-height:1.35;color:#5c5849;margin:0">Nav item stagger, small reveals</p></div>
+  <div style="flex:1 1 90px;background:#f0ece2;padding:11px 12px"><p style="font:700 15px/1 'JetBrains Mono',monospace;color:#141412;margin:0 0 5px">480ms</p><p style="font-size:11px;line-height:1.35;color:#5c5849;margin:0">Text block reveal, card enter</p></div>
+  <div style="flex:1 1 90px;background:#f0ece2;padding:11px 12px"><p style="font:700 15px/1 'JetBrains Mono',monospace;color:#141412;margin:0 0 5px">700ms</p><p style="font-size:11px;line-height:1.35;color:#5c5849;margin:0">Overlay open/close, modal</p></div>
+  <div style="flex:1 1 90px;background:#f0ece2;padding:11px 12px"><p style="font:700 15px/1 'JetBrains Mono',monospace;color:#141412;margin:0 0 5px">1000ms</p><p style="font-size:11px;line-height:1.35;color:#5c5849;margin:0">Curtain lift, hero headline</p></div>
+  <div style="flex:1 1 90px;background:#f0ece2;padding:11px 12px"><p style="font:700 15px/1 'JetBrains Mono',monospace;color:#141412;margin:0 0 5px">1400ms</p><p style="font-size:11px;line-height:1.35;color:#5c5849;margin:0">Preloader exit, first paint of hero video</p></div>
+</div>
+
+<h3 style="font:600 15px/1.3 'Archivo',sans-serif;margin:0 0 8px;color:#141412">1.3 Scroll engine</h3>
+
+<table style="width:100%;border-collapse:collapse;margin:0 0 20px">
+<thead><tr>
+<th style="text-align:left;font:600 9.5px/1.2 'JetBrains Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:#7a7466;padding:0 10px 7px 0;border-bottom:1.5px solid #141412;width:26%">Property</th>
+<th style="text-align:left;font:600 9.5px/1.2 'JetBrains Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:#7a7466;padding:0 0 7px 10px;border-bottom:1.5px solid #141412">Spec</th>
+</tr></thead>
+<tbody>
+<tr><td style="padding:8px 10px 8px 0;border-bottom:1px solid #e4e0d7;vertical-align:top;font:500 11.5px/1.45 'JetBrains Mono',monospace;color:#141412">Smoothing</td><td style="padding:8px 0 8px 10px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.5;color:#26251f">Lerped virtual scroll (Lenis or equivalent). Lerp 0.09, duration 1.1s, wheel multiplier 1.0. Touch smoothing off — native momentum on mobile.</td></tr>
+<tr><td style="padding:8px 10px 8px 0;border-bottom:1px solid #e4e0d7;vertical-align:top;font:500 11.5px/1.45 'JetBrains Mono',monospace;color:#141412">Driver</td><td style="padding:8px 0 8px 10px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.5;color:#26251f">One scroll-trigger system (GSAP ScrollTrigger or Framer Motion <span style="font:400 11.5px 'JetBrains Mono',monospace">useScroll</span>) synced to the smooth-scroll instance on every frame. Do not mix two.</td></tr>
+<tr><td style="padding:8px 10px 8px 0;border-bottom:1px solid #e4e0d7;vertical-align:top;font:500 11.5px/1.45 'JetBrains Mono',monospace;color:#141412">Scrub</td><td style="padding:8px 0 8px 10px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.5;color:#26251f">All pinned sections use <span style="font:400 11.5px 'JetBrains Mono',monospace">scrub: 0.5</span> — a half-second catch-up so the scrub reads as weighted rather than mechanical.</td></tr>
+<tr><td style="padding:8px 10px 8px 0;border-bottom:1px solid #e4e0d7;vertical-align:top;font:500 11.5px/1.45 'JetBrains Mono',monospace;color:#141412">Lock</td><td style="padding:8px 0 8px 10px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.5;color:#26251f">Scroll is stopped, not hidden, while the preloader, menu or a modal is open. Restore exact prior offset on close.</td></tr>
+<tr><td style="padding:8px 10px 8px 0;border-bottom:1px solid #e4e0d7;vertical-align:top;font:500 11.5px/1.45 'JetBrains Mono',monospace;color:#141412">Reveal default</td><td style="padding:8px 0 8px 10px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.5;color:#26251f">Trigger at <span style="font:400 11.5px 'JetBrains Mono',monospace">top 82%</span>, play once, no reverse. Opacity 0→1 and translateY 24px→0 over 480ms, <span style="font:400 11.5px 'JetBrains Mono',monospace">--e-expo</span>, 60ms stagger between siblings.</td></tr>
+</tbody>
+</table>
+
+<h2 style="font:600 24px/1.15 'Archivo',sans-serif;letter-spacing:-.015em;margin:0 0 12px;color:#141412;padding-bottom:8px;border-bottom:2px solid #141412;break-before:page">2 — Preloader &amp; audio gate</h2>
+
+<p style="font-size:14.5px;line-height:1.62;margin:0 0 8px;color:#26251f"><strong style="font-weight:600">OBS.</strong> The gate is global: it appears in the markup of every page, not just the homepage. Its copy runs <span style="font:400 12px 'JetBrains Mono',monospace">[ Loading Model... ]</span> → <span style="font:400 12px 'JetBrains Mono',monospace">Creative Production Studio</span> → <span style="font:400 12px 'JetBrains Mono',monospace">Enter with audio</span> / <span style="font:400 12px 'JetBrains Mono',monospace">[ Enter without sound ]</span>. The header then carries a persistent <span style="font:400 12px 'JetBrains Mono',monospace">[ Sound: Off ]</span> toggle.</p>
+
+<p style="font-size:14.5px;line-height:1.62;margin:0 0 16px;color:#26251f">Two jobs in one screen. It hides the cost of a 3D model and a video, and it collects the one click a browser needs before it will let audio play. Build it as a single fixed layer above everything, mounted by the root layout, driven by a real asset-loading promise — never a fake timer.</p>
+
+<h3 style="font:600 15px/1.3 'Archivo',sans-serif;margin:0 0 8px;color:#141412">2.1 Sequence</h3>
+
+<table style="width:100%;border-collapse:collapse;margin:0 0 18px">
+<thead><tr>
+<th style="text-align:left;font:600 9.5px/1.2 'JetBrains Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:#7a7466;padding:0 8px 7px 0;border-bottom:1.5px solid #141412;width:5%">#</th>
+<th style="text-align:left;font:600 9.5px/1.2 'JetBrains Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:#7a7466;padding:0 8px 7px;border-bottom:1.5px solid #141412;width:22%">Trigger</th>
+<th style="text-align:left;font:600 9.5px/1.2 'JetBrains Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:#7a7466;padding:0 8px 7px;border-bottom:1.5px solid #141412">Animation</th>
+<th style="text-align:left;font:600 9.5px/1.2 'JetBrains Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:#7a7466;padding:0 0 7px 8px;border-bottom:1.5px solid #141412;width:22%">Timing</th>
+</tr></thead>
+<tbody>
+<tr>
+<td style="padding:8px 8px 8px 0;border-bottom:1px solid #e4e0d7;vertical-align:top;font:500 11px 'JetBrains Mono',monospace;color:#a34a1f">01</td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12px;line-height:1.45;color:#26251f">First paint<br /><span style="font:400 9.5px 'JetBrains Mono',monospace;color:#8c8678">OBS</span></td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.5;color:#26251f">Opaque layer already present — no fade-in. Scroll locked, focus trapped. Wordmark and <span style="font:400 11.5px 'JetBrains Mono',monospace">[ Loading Model... ]</span> label fade up.</td>
+<td style="padding:8px 0 8px 8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font:400 11px/1.5 'JetBrains Mono',monospace;color:#3a382f">opacity 0→1<br />y 12→0<br />480ms · --e-expo<br />delay 100ms</td>
+</tr>
+<tr>
+<td style="padding:8px 8px 8px 0;border-bottom:1px solid #e4e0d7;vertical-align:top;font:500 11px 'JetBrains Mono',monospace;color:#a34a1f">02</td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12px;line-height:1.45;color:#26251f">Loader progress<br /><span style="font:400 9.5px 'JetBrains Mono',monospace;color:#8c8678">INF</span></td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.5;color:#26251f">Progress from three.js <span style="font:400 11.5px 'JetBrains Mono',monospace">DefaultLoadingManager</span> (or R3F <span style="font:400 11.5px 'JetBrains Mono',monospace">useProgress</span>): GLTF + hero poster + fonts. Counter and rule advance.</td>
+<td style="padding:8px 0 8px 8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font:400 11px/1.5 'JetBrains Mono',monospace;color:#3a382f">value lerped<br />0.12/frame<br />linear<br />min visible 800ms</td>
+</tr>
+<tr>
+<td style="padding:8px 8px 8px 0;border-bottom:1px solid #e4e0d7;vertical-align:top;font:500 11px 'JetBrains Mono',monospace;color:#a34a1f">03</td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12px;line-height:1.45;color:#26251f">Progress = 100%<br /><span style="font:400 9.5px 'JetBrains Mono',monospace;color:#8c8678">OBS</span></td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.5;color:#26251f">Label crossfades to the gate. Two choices appear staggered: <span style="font:400 11.5px 'JetBrains Mono',monospace">Enter with audio</span> as the primary, <span style="font:400 11.5px 'JetBrains Mono',monospace">[ Enter without sound ]</span> as the quieter secondary.</td>
+<td style="padding:8px 0 8px 8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font:400 11px/1.5 'JetBrains Mono',monospace;color:#3a382f">out 200ms<br />in 320ms · --e-expo<br />stagger 80ms</td>
+</tr>
+<tr>
+<td style="padding:8px 8px 8px 0;border-bottom:1px solid #e4e0d7;vertical-align:top;font:500 11px 'JetBrains Mono',monospace;color:#a34a1f">04</td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12px;line-height:1.45;color:#26251f">Gate idle<br /><span style="font:400 9.5px 'JetBrains Mono',monospace;color:#8c8678">INF</span></td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.5;color:#26251f">Primary CTA breathes so the screen never reads as frozen. Hover: underline wipes left→right, letter-spacing +0.02em.</td>
+<td style="padding:8px 0 8px 8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font:400 11px/1.5 'JetBrains Mono',monospace;color:#3a382f">opacity .65↔1<br />2400ms loop<br />ease-in-out<br />hover 200ms · --e-quart</td>
+</tr>
+<tr>
+<td style="padding:8px 8px 8px 0;border-bottom:1px solid #e4e0d7;vertical-align:top;font:500 11px 'JetBrains Mono',monospace;color:#a34a1f">05</td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12px;line-height:1.45;color:#26251f">Click either CTA<br /><span style="font:400 9.5px 'JetBrains Mono',monospace;color:#8c8678">OBS</span></td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.5;color:#26251f">Gate content falls away, then the curtain lifts on a clip inset from the bottom, revealing the hero already in motion. Scroll unlocks on completion.</td>
+<td style="padding:8px 0 8px 8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font:400 11px/1.5 'JetBrains Mono',monospace;color:#3a382f">content out 240ms<br />curtain 1000ms<br />--e-expo<br />overlap −120ms</td>
+</tr>
+<tr>
+<td style="padding:8px 8px 8px 0;border-bottom:1px solid #e4e0d7;vertical-align:top;font:500 11px 'JetBrains Mono',monospace;color:#a34a1f">06</td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12px;line-height:1.45;color:#26251f">Curtain at 40%<br /><span style="font:400 9.5px 'JetBrains Mono',monospace;color:#8c8678">INF</span></td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.5;color:#26251f">Hero timeline starts under the moving curtain, so the page is never static when uncovered. Headline rises, scroll cue fades in last.</td>
+<td style="padding:8px 0 8px 8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font:400 11px/1.5 'JetBrains Mono',monospace;color:#3a382f">see §4.2<br />cue delay 900ms</td>
+</tr>
+</tbody>
+</table>
+
+<h3 style="font:600 15px/1.3 'Archivo',sans-serif;margin:0 0 8px;color:#141412">2.2 Audio state contract</h3>
+
+<p style="font-size:14.5px;line-height:1.62;margin:0 0 10px;color:#26251f">The choice at the gate is the only thing that can unmute audio, and it must survive navigation. Hold it in a context provider at the root, mirrored to <span style="font:400 12px 'JetBrains Mono',monospace">sessionStorage</span>.</p>
+
+<ul style="margin:0 0 10px;padding-left:20px;font-size:13.5px;line-height:1.6;color:#26251f">
+<li style="margin-bottom:6px"><strong style="font-weight:600">Enter with audio</strong> → state <span style="font:400 12px 'JetBrains Mono',monospace">on</span>. Call <span style="font:400 12px 'JetBrains Mono',monospace">video.play()</span> and unmute inside the click handler itself, in the same task — a deferred call loses the user-gesture grant and Safari will reject it.</li>
+<li style="margin-bottom:6px"><strong style="font-weight:600">Enter without sound</strong> → state <span style="font:400 12px 'JetBrains Mono',monospace">off</span>. Video still plays, muted.</li>
+<li style="margin-bottom:6px">Header toggle reads <span style="font:400 12px 'JetBrains Mono',monospace">[ Sound: Off ]</span> / <span style="font:400 12px 'JetBrains Mono',monospace">[ Sound: On ]</span>. Crossfade the label 200ms; ramp gain over 400ms rather than cutting, so a mid-scroll toggle does not pop.</li>
+<li style="margin-bottom:6px">Repeat visits within a session skip the gate entirely and run only the curtain lift (step 05, 1000ms). Mark the session flag on first successful entry.</li>
+<li>Auto-mute on <span style="font:400 12px 'JetBrains Mono',monospace">visibilitychange</span> to hidden; restore on return only if the state was <span style="font:400 12px 'JetBrains Mono',monospace">on</span>.</li>
+</ul>
+
+<div style="background:#f7f4ec;border:1px solid #ddd8cb;padding:13px 16px;margin:14px 0 0;break-inside:avoid;orphans:3;widows:3">
+<p style="font:700 9.5px/1 'JetBrains Mono',monospace;letter-spacing:.11em;text-transform:uppercase;color:#a34a1f;margin:0 0 7px">Required fallbacks</p>
+<p style="font-size:12.5px;line-height:1.55;margin:0;color:#3a382f">Hard timeout: dismiss the preloader after 6s regardless of load state, and let the model pop in when ready. If WebGL is unavailable or the GLTF fails, skip the "Loading Model" copy and show the gate immediately. Under <span style="font:400 11.5px 'JetBrains Mono',monospace">prefers-reduced-motion</span>, keep the gate but replace the curtain with a 200ms opacity fade.</p>
+</div>
+
+<h2 style="font:600 24px/1.15 'Archivo',sans-serif;letter-spacing:-.015em;margin:0 0 12px;color:#141412;padding-bottom:8px;border-bottom:2px solid #141412;break-before:page">3 — WebGL model</h2>
+
+<p style="font-size:14.5px;line-height:1.62;margin:0 0 8px;color:#26251f"><strong style="font-weight:600">OBS.</strong> A 3D model is loaded before entry on every route — the loader names it explicitly. On the homepage the section that follows the hero carries the interaction hints <span style="font:400 12px 'JetBrains Mono',monospace">click</span> and <span style="font:400 12px 'JetBrains Mono',monospace">Scroll to view</span>, alongside a still thumbnail.</p>
+
+<p style="font-size:14.5px;line-height:1.62;margin:0 0 16px;color:#26251f"><strong style="font-weight:600">INF — confirm with the original.</strong> The subject is a camera body, consistent with the separate 2D camera layers used further down the page (§5). Where the canvas renders — a single persistent canvas in the root layout versus a per-section canvas — is the one architectural question this spec cannot answer from the outside. Build it persistent; it is the only way the model can survive a route change, and the gate loading it globally strongly suggests that is what happens.</p>
+
+<h3 style="font:600 15px/1.3 'Archivo',sans-serif;margin:0 0 8px;color:#141412">3.1 Scene setup</h3>
+
+<table style="width:100%;border-collapse:collapse;margin:0 0 18px">
+<thead><tr>
+<th style="text-align:left;font:600 9.5px/1.2 'JetBrains Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:#7a7466;padding:0 10px 7px 0;border-bottom:1.5px solid #141412;width:26%">Element</th>
+<th style="text-align:left;font:600 9.5px/1.2 'JetBrains Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:#7a7466;padding:0 0 7px 10px;border-bottom:1.5px solid #141412">Spec</th>
+</tr></thead>
+<tbody>
+<tr><td style="padding:8px 10px 8px 0;border-bottom:1px solid #e4e0d7;vertical-align:top;font:500 11.5px/1.45 'JetBrains Mono',monospace;color:#141412">Renderer</td><td style="padding:8px 0 8px 10px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.5;color:#26251f">three.js via React Three Fiber. <span style="font:400 11.5px 'JetBrains Mono',monospace">dpr={[1, 1.75]}</span>, antialias on desktop only, <span style="font:400 11.5px 'JetBrains Mono',monospace">powerPreference: 'high-performance'</span>, ACES Filmic tone mapping.</td></tr>
+<tr><td style="padding:8px 10px 8px 0;border-bottom:1px solid #e4e0d7;vertical-align:top;font:500 11.5px/1.45 'JetBrains Mono',monospace;color:#141412">Model</td><td style="padding:8px 0 8px 10px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.5;color:#26251f">Single GLTF, Draco-compressed, KTX2 textures. Budget: ≤2.5MB total, ≤80k triangles. Preloaded during the gate, so it must be the first network request after the document.</td></tr>
+<tr><td style="padding:8px 10px 8px 0;border-bottom:1px solid #e4e0d7;vertical-align:top;font:500 11.5px/1.45 'JetBrains Mono',monospace;color:#141412">Lighting</td><td style="padding:8px 0 8px 10px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.5;color:#26251f">HDRI environment at 0.8 intensity plus one key directional light. No real-time shadows — bake contact shadow into a ground plane.</td></tr>
+<tr><td style="padding:8px 10px 8px 0;border-bottom:1px solid #e4e0d7;vertical-align:top;font:500 11.5px/1.45 'JetBrains Mono',monospace;color:#141412">Frame loop</td><td style="padding:8px 0 8px 10px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.5;color:#26251f"><span style="font:400 11.5px 'JetBrains Mono',monospace">frameloop="demand"</span> when the canvas is off-screen; on-demand invalidation from the scroll and pointer handlers. This is the single biggest win available.</td></tr>
+</tbody>
+</table>
+
+<h3 style="font:600 15px/1.3 'Archivo',sans-serif;margin:0 0 8px;color:#141412">3.2 Motion</h3>
+
+<table style="width:100%;border-collapse:collapse;margin:0 0 18px">
+<thead><tr>
+<th style="text-align:left;font:600 9.5px/1.2 'JetBrains Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:#7a7466;padding:0 8px 7px 0;border-bottom:1.5px solid #141412;width:20%">Behaviour</th>
+<th style="text-align:left;font:600 9.5px/1.2 'JetBrains Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:#7a7466;padding:0 8px 7px;border-bottom:1.5px solid #141412;width:18%">Trigger</th>
+<th style="text-align:left;font:600 9.5px/1.2 'JetBrains Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:#7a7466;padding:0 8px 7px;border-bottom:1.5px solid #141412">Transform</th>
+<th style="text-align:left;font:600 9.5px/1.2 'JetBrains Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:#7a7466;padding:0 0 7px 8px;border-bottom:1.5px solid #141412;width:20%">Timing</th>
+</tr></thead>
+<tbody>
+<tr>
+<td style="padding:8px 8px 8px 0;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.45;color:#141412;font-weight:600">Entrance</td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12px;line-height:1.45;color:#26251f">Gate dismissed</td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.5;color:#26251f">scale 0.88→1, rotation.y −0.35→0 rad, opacity 0→1 on the material</td>
+<td style="padding:8px 0 8px 8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font:400 11px/1.5 'JetBrains Mono',monospace;color:#3a382f">1400ms<br />--e-expo</td>
+</tr>
+<tr>
+<td style="padding:8px 8px 8px 0;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.45;color:#141412;font-weight:600">Idle drift</td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12px;line-height:1.45;color:#26251f">Always, while visible</td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.5;color:#26251f">rotation.y += 0.0015/frame; position.y ±0.03 on a sine. Slow enough to read as breathing, not spinning.</td>
+<td style="padding:8px 0 8px 8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font:400 11px/1.5 'JetBrains Mono',monospace;color:#3a382f">continuous<br />linear<br />bob period 6s</td>
+</tr>
+<tr>
+<td style="padding:8px 8px 8px 0;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.45;color:#141412;font-weight:600">Pointer parallax</td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12px;line-height:1.45;color:#26251f">Mouse move</td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.5;color:#26251f">Normalised pointer −1..1 → rotation.y ±0.18 rad, rotation.x ±0.10 rad. Damped, never snapped to the cursor.</td>
+<td style="padding:8px 0 8px 8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font:400 11px/1.5 'JetBrains Mono',monospace;color:#3a382f">lerp 0.06/frame<br />≈500ms settle</td>
+</tr>
+<tr>
+<td style="padding:8px 8px 8px 0;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.45;color:#141412;font-weight:600">Scroll rotation</td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12px;line-height:1.45;color:#26251f">Section progress 0→1<br /><span style="font:400 9.5px 'JetBrains Mono',monospace;color:#8c8678">OBS: "Scroll to view"</span></td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.5;color:#26251f">rotation.y 0→π·0.75 and camera.position.z 5.2→3.6, mapped directly to pinned progress. Overrides idle drift while pinned.</td>
+<td style="padding:8px 0 8px 8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font:400 11px/1.5 'JetBrains Mono',monospace;color:#3a382f">scrub 0.5<br />linear<br />pin 140vh</td>
+</tr>
+<tr>
+<td style="padding:8px 8px 8px 0;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.45;color:#141412;font-weight:600">Click</td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12px;line-height:1.45;color:#26251f">Pointer down on mesh<br /><span style="font:400 9.5px 'JetBrains Mono',monospace;color:#8c8678">OBS: "click"</span></td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.5;color:#26251f">Shutter action: a short scale punch to 1.04 and back, paired with a 90ms white flash overlay at 0.5 opacity. Cursor becomes a labelled hotspot on hover.</td>
+<td style="padding:8px 0 8px 8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font:400 11px/1.5 'JetBrains Mono',monospace;color:#3a382f">punch 320ms<br />--e-quart<br />flash 90ms linear</td>
+</tr>
+</tbody>
+</table>
+
+<h2 style="font:600 24px/1.15 'Archivo',sans-serif;letter-spacing:-.015em;margin:0 0 12px;color:#141412;padding-bottom:8px;border-bottom:2px solid #141412">4 — Video hero</h2>
+
+<p style="font-size:14.5px;line-height:1.62;margin:0 0 16px;color:#26251f"><strong style="font-weight:600">OBS.</strong> Full-bleed background video at <span style="font:400 12px 'JetBrains Mono',monospace">/home/hero/1.mp4</span>, headline <span style="font:400 12px 'JetBrains Mono',monospace">LAYR.&nbsp;&nbsp;&nbsp;MEDIA</span> set with a wide internal gap, a duplicated <span style="font:400 12px 'JetBrains Mono',monospace">Scroll</span> cue, and twelve stills at <span style="font:400 12px 'JetBrains Mono',monospace">/home/hero/1–12.jpg</span> that also appear on the Services page. The duplicated cue and duplicated headline text are the signature of a per-character or per-line split, where the second copy is the measuring or masked layer.</p>
+
+<h3 style="font:600 15px/1.3 'Archivo',sans-serif;margin:0 0 8px;color:#141412">4.1 Video element</h3>
+
+<ul style="margin:0 0 16px;padding-left:20px;font-size:13.5px;line-height:1.6;color:#26251f">
+<li style="margin-bottom:6px"><span style="font:400 12px 'JetBrains Mono',monospace">muted playsinline loop preload="auto"</span> with a poster from the stills set. <span style="font:400 12px 'JetBrains Mono',monospace">object-fit: cover</span>, <span style="font:400 12px 'JetBrains Mono',monospace">will-change: transform</span>.</li>
+<li style="margin-bottom:6px">Deliver two encodes: 1920×1080 H.264 at ≤4Mbps for desktop, 1280×720 at ≤1.8Mbps for mobile, plus a WebM/VP9 alternate. Loop point must be seamless — first and last frame identical.</li>
+<li style="margin-bottom:6px">Playback starts during the preloader, paused at frame 0. On gate dismissal, <span style="font:400 12px 'JetBrains Mono',monospace">play()</span> and unmute if audio is on.</li>
+<li style="margin-bottom:6px">Pause when the hero leaves the viewport (<span style="font:400 12px 'JetBrains Mono',monospace">IntersectionObserver</span>, threshold 0) and when the tab is hidden. Resume on re-entry, do not restart.</li>
+<li>On <span style="font:400 12px 'JetBrains Mono',monospace">Save-Data</span> or a 2G connection, drop to the poster still. On <span style="font:400 12px 'JetBrains Mono',monospace">prefers-reduced-motion</span>, keep the video but remove the scroll-linked scale.</li>
+</ul>
+
+<h3 style="font:600 15px/1.3 'Archivo',sans-serif;margin:0 0 8px;color:#141412">4.2 Intro timeline</h3>
+
+<p style="font-size:14.5px;line-height:1.62;margin:0 0 10px;color:#26251f">Fires at 40% of the curtain lift. Time 0 is that moment, not page load.</p>
+
+<table style="width:100%;border-collapse:collapse;margin:0 0 18px">
+<thead><tr>
+<th style="text-align:left;font:600 9.5px/1.2 'JetBrains Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:#7a7466;padding:0 8px 7px 0;border-bottom:1.5px solid #141412;width:14%">At</th>
+<th style="text-align:left;font:600 9.5px/1.2 'JetBrains Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:#7a7466;padding:0 8px 7px;border-bottom:1.5px solid #141412;width:22%">Target</th>
+<th style="text-align:left;font:600 9.5px/1.2 'JetBrains Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:#7a7466;padding:0 8px 7px;border-bottom:1.5px solid #141412">From → to</th>
+<th style="text-align:left;font:600 9.5px/1.2 'JetBrains Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:#7a7466;padding:0 0 7px 8px;border-bottom:1.5px solid #141412;width:20%">Duration · easing</th>
+</tr></thead>
+<tbody>
+<tr>
+<td style="padding:8px 8px 8px 0;border-bottom:1px solid #e4e0d7;vertical-align:top;font:500 11px 'JetBrains Mono',monospace;color:#a34a1f">0ms</td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12px;line-height:1.45;color:#26251f">Video plane</td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.5;color:#26251f">scale 1.08 → 1.00</td>
+<td style="padding:8px 0 8px 8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font:400 11px/1.5 'JetBrains Mono',monospace;color:#3a382f">1400ms · --e-expo</td>
+</tr>
+<tr>
+<td style="padding:8px 8px 8px 0;border-bottom:1px solid #e4e0d7;vertical-align:top;font:500 11px 'JetBrains Mono',monospace;color:#a34a1f">120ms</td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12px;line-height:1.45;color:#26251f">Headline lines</td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.5;color:#26251f">Per-line mask reveal: y 100% → 0 inside <span style="font:400 11.5px 'JetBrains Mono',monospace">overflow:hidden</span> wrappers, 90ms stagger</td>
+<td style="padding:8px 0 8px 8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font:400 11px/1.5 'JetBrains Mono',monospace;color:#3a382f">1000ms · --e-expo</td>
+</tr>
+<tr>
+<td style="padding:8px 8px 8px 0;border-bottom:1px solid #e4e0d7;vertical-align:top;font:500 11px 'JetBrains Mono',monospace;color:#a34a1f">400ms</td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12px;line-height:1.45;color:#26251f">Header + sound toggle</td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.5;color:#26251f">opacity 0 → 1, y −8 → 0</td>
+<td style="padding:8px 0 8px 8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font:400 11px/1.5 'JetBrains Mono',monospace;color:#3a382f">480ms · --e-expo</td>
+</tr>
+<tr>
+<td style="padding:8px 8px 8px 0;border-bottom:1px solid #e4e0d7;vertical-align:top;font:500 11px 'JetBrains Mono',monospace;color:#a34a1f">900ms</td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12px;line-height:1.45;color:#26251f">Scroll cue</td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.5;color:#26251f">opacity 0 → 1, then a looping y 0→6→0 hint</td>
+<td style="padding:8px 0 8px 8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font:400 11px/1.5 'JetBrains Mono',monospace;color:#3a382f">320ms in; loop 1800ms</td>
+</tr>
+</tbody>
+</table>
+
+<h3 style="font:600 15px/1.3 'Archivo',sans-serif;margin:0 0 8px;color:#141412">4.3 Scroll-out</h3>
+
+<p style="font-size:14.5px;line-height:1.62;margin:0 0 8px;color:#26251f">Scroll-linked, no easing. Progress measured from hero top to hero bottom, mapped over one viewport height.</p>
+
+<ul style="margin:0 0 8px;padding-left:20px;font-size:13.5px;line-height:1.6;color:#26251f">
+<li style="margin-bottom:6px">Video scale 1.00 → 1.12 and y 0 → 12% for depth; headline y 0 → −18% at a faster rate, so the type outruns the footage.</li>
+<li style="margin-bottom:6px">Headline opacity 1 → 0 across progress 0.35 → 0.7. Scroll cue fades out over 0 → 0.15.</li>
+<li>Hero clip-path inset closes from 0 to 6% on all sides as the next section arrives, so the video reads as a card sliding under the fold rather than a hard cut.</li>
+</ul>
+
+<h2 style="font:600 24px/1.15 'Archivo',sans-serif;letter-spacing:-.015em;margin:0 0 12px;color:#141412;padding-bottom:8px;border-bottom:2px solid #141412;break-before:page">5 — Camera parallax layers</h2>
+
+<p style="font-size:14.5px;line-height:1.62;margin:0 0 16px;color:#26251f"><strong style="font-weight:600">OBS.</strong> Two transparent PNGs, <span style="font:400 12px 'JetBrains Mono',monospace">/home/camera/p1.png</span> and <span style="font:400 12px 'JetBrains Mono',monospace">p2.png</span>, labelled "Camera layer 1" and "Camera layer 2", sit immediately before the <span style="font:400 12px 'JetBrains Mono',monospace">We're LAYR.</span> block. A cut-out object split across two files means one thing: the copy is sandwiched between them, so text passes through the object as you scroll.</p>
+
+<h3 style="font:600 15px/1.3 'Archivo',sans-serif;margin:0 0 8px;color:#141412">5.1 Layer stack</h3>
+
+<table style="width:100%;border-collapse:collapse;margin:0 0 18px">
+<thead><tr>
+<th style="text-align:left;font:600 9.5px/1.2 'JetBrains Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:#7a7466;padding:0 8px 7px 0;border-bottom:1.5px solid #141412;width:10%">z</th>
+<th style="text-align:left;font:600 9.5px/1.2 'JetBrains Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:#7a7466;padding:0 8px 7px;border-bottom:1.5px solid #141412;width:24%">Layer</th>
+<th style="text-align:left;font:600 9.5px/1.2 'JetBrains Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:#7a7466;padding:0 8px 7px;border-bottom:1.5px solid #141412">Scroll mapping over pinned progress 0→1</th>
+<th style="text-align:left;font:600 9.5px/1.2 'JetBrains Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:#7a7466;padding:0 0 7px 8px;border-bottom:1.5px solid #141412;width:15%">Pointer tilt</th>
+</tr></thead>
+<tbody>
+<tr>
+<td style="padding:8px 8px 8px 0;border-bottom:1px solid #e4e0d7;vertical-align:top;font:500 11px 'JetBrains Mono',monospace;color:#a34a1f">30</td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.45;color:#141412;font-weight:600">p2.png — foreground</td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.5;color:#26251f">y +14% → −14%, scale 1.06 → 1.14. Fastest layer; may crop past the section edge.</td>
+<td style="padding:8px 0 8px 8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font:400 11px/1.5 'JetBrains Mono',monospace;color:#3a382f">±14px</td>
+</tr>
+<tr>
+<td style="padding:8px 8px 8px 0;border-bottom:1px solid #e4e0d7;vertical-align:top;font:500 11px 'JetBrains Mono',monospace;color:#a34a1f">20</td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.45;color:#141412;font-weight:600">Copy — "We're LAYR."</td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.5;color:#26251f">y +6% → −6%. Line-masked reveal on entry (480ms, 60ms stagger) before scrubbing begins.</td>
+<td style="padding:8px 0 8px 8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font:400 11px/1.5 'JetBrains Mono',monospace;color:#3a382f">none</td>
+</tr>
+<tr>
+<td style="padding:8px 8px 8px 0;border-bottom:1px solid #e4e0d7;vertical-align:top;font:500 11px 'JetBrains Mono',monospace;color:#a34a1f">10</td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.45;color:#141412;font-weight:600">p1.png — background</td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.5;color:#26251f">y +4% → −4%, scale 1.00 → 1.04. Slowest; establishes the anchor position.</td>
+<td style="padding:8px 0 8px 8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font:400 11px/1.5 'JetBrains Mono',monospace;color:#3a382f">±6px</td>
+</tr>
+<tr>
+<td style="padding:8px 8px 8px 0;border-bottom:1px solid #e4e0d7;vertical-align:top;font:500 11px 'JetBrains Mono',monospace;color:#a34a1f">0</td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.45;color:#141412;font-weight:600">Section background</td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.5;color:#26251f">Static. Any gradient shift here is a fade, never a moving gradient.</td>
+<td style="padding:8px 0 8px 8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font:400 11px/1.5 'JetBrains Mono',monospace;color:#3a382f">none</td>
+</tr>
+</tbody>
+</table>
+
+<h3 style="font:600 15px/1.3 'Archivo',sans-serif;margin:0 0 8px;color:#141412">5.2 Implementation requirements</h3>
+
+<ul style="margin:0 0 8px;padding-left:20px;font-size:13.5px;line-height:1.6;color:#26251f">
+<li style="margin-bottom:6px">Pin the section for <span style="font:400 12px 'JetBrains Mono',monospace">160vh</span> of scroll. Every layer is <span style="font:400 12px 'JetBrains Mono',monospace">position:absolute</span> inside it; only <span style="font:400 12px 'JetBrains Mono',monospace">transform</span> and <span style="font:400 12px 'JetBrains Mono',monospace">opacity</span> animate.</li>
+<li style="margin-bottom:6px">Percentage translations, not pixels — the depth ratio must hold from 1280 to 2560 wide.</li>
+<li style="margin-bottom:6px">Pointer tilt is damped at lerp 0.08 and applied on top of scroll transforms via a wrapper element, so the two systems never fight over one <span style="font:400 12px 'JetBrains Mono',monospace">transform</span> string.</li>
+<li style="margin-bottom:6px">Both PNGs need <span style="font:400 12px 'JetBrains Mono',monospace">priority</span> loading — a late foreground layer is a visible pop. Ship them at 2× the largest rendered size, no more.</li>
+<li style="margin-bottom:6px">Under 900px, collapse to a single layer with a 40% reduced range; drop the tilt entirely on touch.</li>
+<li><span style="font:400 12px 'JetBrains Mono',monospace">prefers-reduced-motion</span>: no pin, no parallax. Static composition, copy fades in.</li>
+</ul>
+
+<h2 style="font:600 24px/1.15 'Archivo',sans-serif;letter-spacing:-.015em;margin:0 0 12px;color:#141412;padding-bottom:8px;border-bottom:2px solid #141412;break-before:page">6 — Motion inventory, all pages</h2>
+
+<p style="font-size:14.5px;line-height:1.62;margin:0 0 16px;color:#26251f">Shorter entries. Each is a distinct behaviour a developer has to build; the four systems above are the ones that carry the site's character.</p>
+
+<h3 style="font:600 15px/1.3 'Archivo',sans-serif;margin:0 0 8px;color:#141412">6.1 Global chrome — every route</h3>
+
+<table style="width:100%;border-collapse:collapse;margin:0 0 20px">
+<thead><tr>
+<th style="text-align:left;font:600 9.5px/1.2 'JetBrains Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:#7a7466;padding:0 8px 7px 0;border-bottom:1.5px solid #141412;width:22%">Element</th>
+<th style="text-align:left;font:600 9.5px/1.2 'JetBrains Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:#7a7466;padding:0 8px 7px;border-bottom:1.5px solid #141412">Behaviour</th>
+<th style="text-align:left;font:600 9.5px/1.2 'JetBrains Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:#7a7466;padding:0 0 7px 8px;border-bottom:1.5px solid #141412;width:22%">Timing</th>
+</tr></thead>
+<tbody>
+<tr>
+<td style="padding:8px 8px 8px 0;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.45;color:#141412;font-weight:600">Menu overlay<br /><span style="font:400 9.5px 'JetBrains Mono',monospace;color:#8c8678">OBS</span></td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.5;color:#26251f">Full-screen panel. Clip-path or y-slide in, then <span style="font:400 11.5px 'JetBrains Mono',monospace">[ HOME ]</span> → <span style="font:400 11.5px 'JetBrains Mono',monospace">[ ABOUT ]</span> rise from masked wrappers in sequence, CTA and <span style="font:400 11.5px 'JetBrains Mono',monospace">© 2026 LAYR — Toronto, CA</span> last. Closing reverses at 0.7× duration.</td>
+<td style="padding:8px 0 8px 8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font:400 11px/1.5 'JetBrains Mono',monospace;color:#3a382f">panel 700ms · --e-inout<br />items 480ms<br />stagger 70ms<br />close 490ms</td>
+</tr>
+<tr>
+<td style="padding:8px 8px 8px 0;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.45;color:#141412;font-weight:600">Duplicated CTA label<br /><span style="font:400 9.5px 'JetBrains Mono',monospace;color:#8c8678">OBS</span></td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.5;color:#26251f">"START A PROJECT" appears twice in markup, as does "View Full gallery →". This is a rolling-text hover: two stacked copies inside a clipped box, both translating up 100% so the label swaps for an identical one.</td>
+<td style="padding:8px 0 8px 8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font:400 11px/1.5 'JetBrains Mono',monospace;color:#3a382f">320ms · --e-quart</td>
+</tr>
+<tr>
+<td style="padding:8px 8px 8px 0;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.45;color:#141412;font-weight:600">Page transition<br /><span style="font:400 9.5px 'JetBrains Mono',monospace;color:#8c8678">INF</span></td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.5;color:#26251f">Cover in, route change at the covered midpoint, uncover. The persistent WebGL canvas and the audio state must survive it — mount both above the transition boundary.</td>
+<td style="padding:8px 0 8px 8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font:400 11px/1.5 'JetBrains Mono',monospace;color:#3a382f">in 560ms · out 700ms<br />--e-inout</td>
+</tr>
+<tr>
+<td style="padding:8px 8px 8px 0;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.45;color:#141412;font-weight:600">Footer reveal<br /><span style="font:400 9.5px 'JetBrains Mono',monospace;color:#8c8678">INF</span></td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.5;color:#26251f">The contact block and footer read as a fixed panel the page slides off to expose. <span style="font:400 11.5px 'JetBrains Mono',monospace">/footer/card1.png</span> gets a pointer tilt of ±8° with lerp 0.1.</td>
+<td style="padding:8px 0 8px 8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font:400 11px/1.5 'JetBrains Mono',monospace;color:#3a382f">scroll-linked<br />linear · 100vh</td>
+</tr>
+</tbody>
+</table>
+
+<h3 style="font:600 15px/1.3 'Archivo',sans-serif;margin:0 0 8px;color:#141412">6.2 Home</h3>
+
+<table style="width:100%;border-collapse:collapse;margin:0 0 20px">
+<thead><tr>
+<th style="text-align:left;font:600 9.5px/1.2 'JetBrains Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:#7a7466;padding:0 8px 7px 0;border-bottom:1.5px solid #141412;width:22%">Section</th>
+<th style="text-align:left;font:600 9.5px/1.2 'JetBrains Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:#7a7466;padding:0 8px 7px;border-bottom:1.5px solid #141412">Behaviour</th>
+<th style="text-align:left;font:600 9.5px/1.2 'JetBrains Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:#7a7466;padding:0 0 7px 8px;border-bottom:1.5px solid #141412;width:22%">Timing</th>
+</tr></thead>
+<tbody>
+<tr>
+<td style="padding:8px 8px 8px 0;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.45;color:#141412;font-weight:600">Project marquee</td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.5;color:#26251f">Ten Vimeo thumbnails repeated eight times in the DOM — a long belt, not a two-copy loop. Runs continuously; scroll velocity adds to speed and can invert direction. Hover on a card pauses the belt and scales that card to 1.03.</td>
+<td style="padding:8px 0 8px 8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font:400 11px/1.5 'JetBrains Mono',monospace;color:#3a382f">base 60s/cycle<br />linear<br />velocity ±40%<br />hover 200ms</td>
+</tr>
+<tr>
+<td style="padding:8px 8px 8px 0;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.45;color:#141412;font-weight:600">Text marquee</td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.5;color:#26251f">"PHOTO. VIDEO. CONTENT." repeats in opposing directions on stacked rows. Pure CSS <span style="font:400 11.5px 'JetBrains Mono',monospace">translate3d</span> keyframes.</td>
+<td style="padding:8px 0 8px 8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font:400 11px/1.5 'JetBrains Mono',monospace;color:#3a382f">32s/cycle · linear</td>
+</tr>
+<tr>
+<td style="padding:8px 8px 8px 0;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.45;color:#141412;font-weight:600">Highlight grid</td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.5;color:#26251f">The twelve stills fan out or assemble on scroll — each tile gets its own y offset and rotation seeded per index so the group never moves as a block.</td>
+<td style="padding:8px 0 8px 8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font:400 11px/1.5 'JetBrains Mono',monospace;color:#3a382f">scrub 0.5 · pin 120vh</td>
+</tr>
+<tr>
+<td style="padding:8px 8px 8px 0;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.45;color:#141412;font-weight:600">Process 01–05</td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.5;color:#26251f">The list appears twice in markup: one static column, one moving track. A pinned stepper — the active step highlights while the inactive ones sit at 0.35 opacity, advancing at even progress thresholds.</td>
+<td style="padding:8px 0 8px 8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font:400 11px/1.5 'JetBrains Mono',monospace;color:#3a382f">pin 5×80vh<br />step change 320ms<br />--e-quart</td>
+</tr>
+<tr>
+<td style="padding:8px 8px 8px 0;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.45;color:#141412;font-weight:600">Services 01–03</td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.5;color:#26251f">Each card's title and index also duplicate in markup: image layer plus text layer. Stacked pinned cards, each scaling to 0.96 and dimming as the next slides over it.</td>
+<td style="padding:8px 0 8px 8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font:400 11px/1.5 'JetBrains Mono',monospace;color:#3a382f">pin 3×100vh<br />scrub 0.5</td>
+</tr>
+<tr>
+<td style="padding:8px 8px 8px 0;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.45;color:#141412;font-weight:600">Project gallery</td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.5;color:#26251f">Ten stills in a horizontal scroll track driven by vertical scroll, with per-column parallax. Ends on the "THERE'S MORE WHERE THAT CAME FROM." card.</td>
+<td style="padding:8px 0 8px 8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font:400 11px/1.5 'JetBrains Mono',monospace;color:#3a382f">pin = track width<br />scrub 0.5 · linear</td>
+</tr>
+<tr>
+<td style="padding:8px 8px 8px 0;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.45;color:#141412;font-weight:600">Testimonials</td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.5;color:#26251f">Two Vimeo clips with pull-quotes, each paired with a stat (<span style="font:400 11.5px 'JetBrains Mono',monospace">50+</span>, <span style="font:400 11.5px 'JetBrains Mono',monospace">6M+</span>). Stats count up once on entry; the words "real clients / real results / real projects" reveal line by line.</td>
+<td style="padding:8px 0 8px 8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font:400 11px/1.5 'JetBrains Mono',monospace;color:#3a382f">count 1200ms · --e-expo<br />lines 480ms · 60ms</td>
+</tr>
+</tbody>
+</table>
+
+<h3 style="font:600 15px/1.3 'Archivo',sans-serif;margin:0 0 8px;color:#141412">6.3 Projects, Services, About, Contact</h3>
+
+<table style="width:100%;border-collapse:collapse;margin:0 0 20px">
+<thead><tr>
+<th style="text-align:left;font:600 9.5px/1.2 'JetBrains Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:#7a7466;padding:0 8px 7px 0;border-bottom:1.5px solid #141412;width:22%">Page · element</th>
+<th style="text-align:left;font:600 9.5px/1.2 'JetBrains Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:#7a7466;padding:0 8px 7px;border-bottom:1.5px solid #141412">Behaviour</th>
+<th style="text-align:left;font:600 9.5px/1.2 'JetBrains Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:#7a7466;padding:0 0 7px 8px;border-bottom:1.5px solid #141412;width:22%">Timing</th>
+</tr></thead>
+<tbody>
+<tr>
+<td style="padding:8px 8px 8px 0;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.45;color:#141412;font-weight:600">Projects — infinite canvas<br /><span style="font:400 9.5px 'JetBrains Mono',monospace;color:#8c8678">OBS</span></td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.5;color:#26251f">The page's own description says it: a 2D infinite canvas, drag and scroll to explore. Roughly 46 items on a wrapped plane, positions modulo the canvas size so it tiles in both axes. Drag with inertia, wheel pans, grab cursor.</td>
+<td style="padding:8px 0 8px 8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font:400 11px/1.5 'JetBrains Mono',monospace;color:#3a382f">drag friction .92<br />release decay ~900ms<br />wheel lerp .1</td>
+</tr>
+<tr>
+<td style="padding:8px 8px 8px 0;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.45;color:#141412;font-weight:600">Projects — filter<br /><span style="font:400 9.5px 'JetBrains Mono',monospace;color:#8c8678">OBS</span></td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.5;color:#26251f">ALL / EVENTS / HOSPITALITY / BRAND &amp; RETAIL / IMAGES. Non-matching items fade to 0.15 and scale to 0.92 rather than unmounting, so the canvas layout never jumps.</td>
+<td style="padding:8px 0 8px 8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font:400 11px/1.5 'JetBrains Mono',monospace;color:#3a382f">320ms · --e-quart<br />stagger 20ms</td>
+</tr>
+<tr>
+<td style="padding:8px 8px 8px 0;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.45;color:#141412;font-weight:600">Projects — card hover<br /><span style="font:400 9.5px 'JetBrains Mono',monospace;color:#8c8678">INF</span></td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.5;color:#26251f">Poster is a Vimeo thumbnail; hover swaps to a muted preview after a 150ms intent delay. Title and category rise from masked wrappers. Cancel cleanly on fast pass-through.</td>
+<td style="padding:8px 0 8px 8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font:400 11px/1.5 'JetBrains Mono',monospace;color:#3a382f">200ms · --e-quart<br />video fade 300ms</td>
+</tr>
+<tr>
+<td style="padding:8px 8px 8px 0;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.45;color:#141412;font-weight:600">Services — index list<br /><span style="font:400 9.5px 'JetBrains Mono',monospace;color:#8c8678">OBS</span></td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.5;color:#26251f">Six bracketed rows with numbers 01–06. Hovering a row brings up its image from <span style="font:400 11.5px 'JetBrains Mono',monospace">/services/services/</span> — clip-path reveal following the cursor.</td>
+<td style="padding:8px 0 8px 8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font:400 11px/1.5 'JetBrains Mono',monospace;color:#3a382f">reveal 480ms · --e-expo<br />follow lerp .12</td>
+</tr>
+<tr>
+<td style="padding:8px 8px 8px 0;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.45;color:#141412;font-weight:600">Services — detail 01/06<br /><span style="font:400 9.5px 'JetBrains Mono',monospace;color:#8c8678">OBS</span></td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.5;color:#26251f">Six panels with a persistent <span style="font:400 11.5px 'JetBrains Mono',monospace">nn /06</span> counter. Counter digit rolls on step change; the "WHAT'S INCLUDED" list staggers in per panel.</td>
+<td style="padding:8px 0 8px 8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font:400 11px/1.5 'JetBrains Mono',monospace;color:#3a382f">roll 320ms · --e-quart<br />list 480ms · 50ms</td>
+</tr>
+<tr>
+<td style="padding:8px 8px 8px 0;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.45;color:#141412;font-weight:600">Services — stat row<br /><span style="font:400 9.5px 'JetBrains Mono',monospace;color:#8c8678">OBS</span></td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.5;color:#26251f"><span style="font:400 11.5px 'JetBrains Mono',monospace">30M+ / 50+ / 350+</span> count up once on entry, 120ms apart. Note the homepage quotes 6M+ organic views against 30M+ here — flag for the client, not a motion issue.</td>
+<td style="padding:8px 0 8px 8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font:400 11px/1.5 'JetBrains Mono',monospace;color:#3a382f">1200ms · --e-expo</td>
+</tr>
+<tr>
+<td style="padding:8px 8px 8px 0;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.45;color:#141412;font-weight:600">About — 6 stages<br /><span style="font:400 9.5px 'JetBrains Mono',monospace;color:#8c8678">OBS</span></td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.5;color:#26251f">Six statements with <span style="font:400 11.5px 'JetBrains Mono',monospace">➔</span> markers. Line-by-line reveal on scroll; the arrow translates +6px on row hover.</td>
+<td style="padding:8px 0 8px 8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font:400 11px/1.5 'JetBrains Mono',monospace;color:#3a382f">480ms · --e-expo<br />stagger 80ms</td>
+</tr>
+<tr>
+<td style="padding:8px 8px 8px 0;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.45;color:#141412;font-weight:600">About — crew<br /><span style="font:400 9.5px 'JetBrains Mono',monospace;color:#8c8678">OBS</span></td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.5;color:#26251f">Names appear three times each — abbreviated tab (<span style="font:400 11.5px 'JetBrains Mono',monospace">Ali P.</span>), full card, and short label. A three-state switcher: selecting a name crossfades the portrait and mask-reveals the new bio.</td>
+<td style="padding:8px 0 8px 8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font:400 11px/1.5 'JetBrains Mono',monospace;color:#3a382f">image 480ms<br />text 320ms · --e-expo</td>
+</tr>
+<tr>
+<td style="padding:8px 8px 8px 0;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.45;color:#141412;font-weight:600">Contact — step form<br /><span style="font:400 9.5px 'JetBrains Mono',monospace;color:#8c8678">OBS</span></td>
+<td style="padding:8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font-size:12.5px;line-height:1.5;color:#26251f">Numbered fields <span style="font:400 11.5px 'JetBrains Mono',monospace">[ 01 ]</span>–<span style="font:400 11.5px 'JetBrains Mono',monospace">[ 05 ]</span> with an intent chooser. Label lifts and the underline wipes on focus; the completed number ticks to a filled state. Submit disables and shows an inline progress state — never a page change.</td>
+<td style="padding:8px 0 8px 8px;border-bottom:1px solid #e4e0d7;vertical-align:top;font:400 11px/1.5 'JetBrains Mono',monospace;color:#3a382f">focus 200ms · --e-quart<br />underline 320ms</td>
+</tr>
+</tbody>
+</table>
+
+<h2 style="font:600 24px/1.15 'Archivo',sans-serif;letter-spacing:-.015em;margin:0 0 12px;color:#141412;padding-bottom:8px;border-bottom:2px solid #141412;break-before:page">7 — Performance &amp; accessibility</h2>
+
+<p style="font-size:14.5px;line-height:1.62;margin:0 0 14px;color:#26251f">This much motion only works if the frame budget holds. A WebGL canvas, an autoplaying video, several always-running marquees and half a dozen pinned scroll sections all compete for the same main thread, and the site's own entry sequence is what buys the headroom.</p>
+
+<h3 style="font:600 15px/1.3 'Archivo',sans-serif;margin:0 0 8px;color:#141412">7.1 Budget</h3>
+
+<ul style="margin:0 0 18px;padding-left:20px;font-size:13.5px;line-height:1.6;color:#26251f">
+<li style="margin-bottom:6px">Animate <span style="font:400 12px 'JetBrains Mono',monospace">transform</span> and <span style="font:400 12px 'JetBrains Mono',monospace">opacity</span> only. No animated width, height, top, left, filter or box-shadow anywhere in this spec.</li>
+<li style="margin-bottom:6px">One <span style="font:400 12px 'JetBrains Mono',monospace">requestAnimationFrame</span> loop for the whole page, shared by the scroll engine, marquees and the WebGL canvas. Never one per component.</li>
+<li style="margin-bottom:6px">Pause off-screen work: marquee <span style="font:400 12px 'JetBrains Mono',monospace">animation-play-state</span>, video playback, and the canvas frame loop all gate on <span style="font:400 12px 'JetBrains Mono',monospace">IntersectionObserver</span>.</li>
+<li style="margin-bottom:6px"><span style="font:400 12px 'JetBrains Mono',monospace">will-change: transform</span> only on currently-animating layers; remove it after. Roughly 40 hero and gallery images plus a canvas will exhaust texture memory if every one is promoted.</li>
+<li style="margin-bottom:6px">Targets: 60fps sustained on an M-series laptop, ≥45fps on a mid-range Android. LCP under 2.5s measured from gate dismissal, not page load.</li>
+<li>Lazy-load every Vimeo thumbnail below the fold. The homepage repeats ten of them eight times over — the repeats must reuse one cached request each, not re-fetch.</li>
+</ul>
+
+<h3 style="font:600 15px/1.3 'Archivo',sans-serif;margin:0 0 8px;color:#141412">7.2 Accessibility requirements</h3>
+
+<ul style="margin:0 0 18px;padding-left:20px;font-size:13.5px;line-height:1.6;color:#26251f">
+<li style="margin-bottom:6px"><span style="font:400 12px 'JetBrains Mono',monospace">prefers-reduced-motion: reduce</span> must be honoured globally: no smooth-scroll hijack, no pins, no parallax, no marquees. Replace every reveal with a 200ms opacity fade. Content and reading order stay identical.</li>
+<li style="margin-bottom:6px">Nothing may be gated behind hover or scroll alone. Every scroll-revealed section is present and readable with JavaScript disabled or scroll broken.</li>
+<li style="margin-bottom:6px">The audio gate needs a focus trap, a visible focus ring, <span style="font:400 12px 'JetBrains Mono',monospace">Esc</span> as "enter without sound", and a real heading — not just styled text.</li>
+<li style="margin-bottom:6px">The infinite canvas needs a keyboard path: arrow keys pan, <span style="font:400 12px 'JetBrains Mono',monospace">Tab</span> moves item to item and brings the focused item into view. Provide a plain list fallback.</li>
+<li>Never rely on the marquee to deliver information. "PHOTO. VIDEO. CONTENT." is decorative — the static copy beside it carries the meaning.</li>
+</ul>
+
+<h3 style="font:600 15px/1.3 'Archivo',sans-serif;margin:0 0 8px;color:#141412">7.3 QA checklist</h3>
+
+<div style="background:#f0ece2;padding:16px 18px;margin:0 0 8px;break-inside:avoid;orphans:3;widows:3">
+<ul style="margin:0;padding-left:18px;font-size:13px;line-height:1.7;color:#3a382f">
+<li>Refresh mid-scroll: pins re-measure, no dead space, no stacked sections.</li>
+<li>Resize across the 900px breakpoint while a pinned section is active.</li>
+<li>Back/forward navigation: canvas persists, audio state persists, gate does not reappear.</li>
+<li>Enter with audio in Safari — confirm the unmute survives, since it is the strictest gate.</li>
+<li>Throttle to 3G: gate must still dismiss at the 6s timeout with the model absent.</li>
+<li>Reduced motion on: scroll to the bottom of every page and confirm nothing is missing or clipped.</li>
+<li>Tab through every page start to finish; confirm focus never enters a hidden overlay.</li>
+</ul>
+</div>
+
+</doc-page>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  componentDidMount() {
+    // Self-healing spacer measurement. doc-page derives its print
+    // header/footer spacers (--doc-hdr-h / --doc-ftr-h) from a one-off
+    // measure pass that can run before the slotted header exists, and any
+    // bare _syncSize() call resets them to 0. So: re-query the element every
+    // tick and re-measure whenever the value is 0 while a header is present.
+    // No fixed time budget, no cached node references.
+    const settle = () => {
+      const dp = document.querySelector("doc-page");
+      if (!dp || typeof dp._measure !== "function") return;
+      const hdr = dp.querySelector(':scope > [slot="header"]');
+      const ftr = dp.querySelector(':scope > [slot="footer"]');
+      if (!hdr && !ftr) return;
+      const cs = getComputedStyle(dp);
+      const h = parseFloat(cs.getPropertyValue("--doc-hdr-h")) || 0;
+      const f = parseFloat(cs.getPropertyValue("--doc-ftr-h")) || 0;
+      if ((hdr && h === 0) || (ftr && f === 0)) dp._measure();
+    };
+    this._settle = settle;
+    this._settleTimer = setInterval(settle, 250);
+    settle();
+    window.addEventListener("beforeprint", settle);
+    window.addEventListener("resize", settle);
+    this._legacyMount();
+  }
+  _legacyMount() {
+    const remeasure = () => {
+      const dp = document.querySelector("doc-page");
+      if (!dp) return false;
+      if (typeof dp._measure !== "function") return false;
+      dp._measure();
+      const cs = getComputedStyle(dp);
+      return parseFloat(cs.getPropertyValue("--doc-hdr-h")) > 0;
+    };
+    this._remeasure = remeasure;
+
+    const start = () => {
+      // Runs for a fixed window rather than stopping at the first success:
+      // any late geometry-attribute write on <doc-page> resets the spacer
+      // vars to 0, so a one-shot measure can be silently undone.
+      let tries = 0;
+      const tick = () => {
+        remeasure();
+        if (++tries < 60) requestAnimationFrame(tick);
+      };
+      tick();
+
+      const dp = document.querySelector("doc-page");
+      if (!dp) return;
+      this._mo = new MutationObserver(() => remeasure());
+      this._mo.observe(dp, {
+        attributes: true,
+        attributeFilter: ["size", "margin", "orientation", "width", "height", "content-width", "content-height"]
+      });
+      const targets = [
+        dp.querySelector(':scope > [slot="header"]'),
+        dp.querySelector(':scope > [slot="footer"]')
+      ].filter(Boolean);
+      if (targets.length && window.ResizeObserver) {
+        this._ro = new ResizeObserver(() => remeasure());
+        targets.forEach((t) => this._ro.observe(t));
+      }
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(remeasure);
+      window.addEventListener("resize", remeasure);
+    };
+
+    if (window.customElements && customElements.whenDefined) {
+      customElements.whenDefined("doc-page").then(start);
+    } else {
+      start();
+    }
+  }
+  componentWillUnmount() {
+    if (this._settleTimer) clearInterval(this._settleTimer);
+    if (this._settle) {
+      window.removeEventListener("beforeprint", this._settle);
+      window.removeEventListener("resize", this._settle);
+    }
+    if (this._ro) this._ro.disconnect();
+    if (this._mo) this._mo.disconnect();
+    if (this._remeasure) window.removeEventListener("resize", this._remeasure);
+  }
+}
+</script>
+</body>
+</html>

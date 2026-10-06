@@ -1,0 +1,283 @@
+/*
+ * The spiral staircase.
+ *
+ * Ten steps descend the section, alternating: a picture, then a note, then a
+ * picture. A note is a step in its own right, not a label attached to one, so
+ * both kinds ride the identical path and a note simply arrives at the curve a
+ * step after the picture ahead of it.
+ *
+ * Everything scroll-driven arrives as a custom property written by
+ * Showcase.tsx: --x, --s, --o, --o-copy and --ry from the orbit, --in and --ty
+ * from the entrance. They compose in one declaration each, so the reveal never
+ * clobbers the placement and everything stays on the compositor.
+ *
+ * ── handover to the camera ────────────────────────────────────────────────
+ *
+ * --recede and --recede-dim are scrubbed as the camera climbs over this
+ * section: the staircase shrinks back and darkens on its way out, so the
+ * camera reads as arriving in front of it rather than merely on top of it.
+ *
+ * NOT sticky, and not pinned. Pinning is out because GSAP rewrites the pinned
+ * element's inline styles to `inset: 0`, which zeroes its offsetTop — and
+ * Brandmark derives its own position from exactly that number, so a pin here
+ * parks the headline thousands of pixels off screen. `position: sticky` with
+ * `bottom: 0` was the obvious alternative and simply does not hold on this
+ * page: sticky with `top` engages correctly, sticky with `bottom` lets the
+ * section scroll straight past its constraint.
+ */
+.section {
+  position: relative;
+  z-index: 1;
+  transform: scale(var(--recede, 1));
+  border-radius: var(--recede-radius, 0px);
+  background: var(--ink-2);
+  border-top: 1px solid var(--line);
+  padding: 20vh 0 30vh;
+  /*
+   * `clip`, not `hidden`. Both trim the steps that bleed past the edges, but
+   * `hidden` makes this element a scroll container, and a scroll container is
+   * exactly what `position: sticky` measures against — so anything sticky on
+   * the page silently stops sticking. `clip` is not a scroll container.
+   */
+  overflow: clip;
+  /*
+   * The steps carry z-index up to 1000 to sort themselves by depth. Without a
+   * stacking context to live in, those numbers compete with the rest of the
+   * page and pictures paint over the fixed headline that is meant to sit in
+   * front of them. Isolating keeps the depth sort a private matter.
+   */
+  isolation: isolate;
+}
+
+/* The dimming pass. z-index has to clear the steps' own depth sort. */
+.section::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3000;
+  background: var(--ink);
+  opacity: var(--recede-dim, 0);
+  pointer-events: none;
+}
+
+/*
+ * Faint centre line — the axis the staircase winds around. It makes the
+ * rotation legible: without something fixed behind them the steps just look
+ * like they are sliding left and right.
+ */
+.section::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgb(242 239 231 / 0.08) 12%,
+    rgb(242 239 231 / 0.08) 88%,
+    transparent
+  );
+  pointer-events: none;
+}
+
+/*
+ * ── step geometry ─────────────────────────────────────────────────────────
+ *
+ * Two widths, one per kind of step, and they are the only sizes worth touching
+ * here.
+ *
+ * The height reserve is written by the component from the measured step
+ * height, since the space the staircase needs depends on how tall a step
+ * actually renders and how far the front of the orbit scales it. The fallback
+ * applies before that measurement lands and if JS never arrives: no transforms
+ * then, so a plain step height is the right reserve.
+ */
+.stair {
+  /*
+   * Two sizes, one per kind of step. Every step rides the orbit on its own
+   * centre, so the widest of them is what the section has to fit — the
+   * component measures that rather than being told, so neither of these has to
+   * be kept in sync with anything by hand.
+   */
+  /*
+   * The picture is 30% down on what it was — every term of the clamp scaled by
+   * the same 0.7 so it shrinks by the same proportion at every viewport rather
+   * than only in the middle of the range.
+   *
+   * That hands the orbit over to the copy: a note is now the widest kind of
+   * step everywhere, so it is the note's outer edge that lands on the screen
+   * edge and sets the radius. Nothing needed changing for that — the component
+   * sizes on whichever step measures widest — but it is why the swing got
+   * wider rather than narrower when the pictures got smaller.
+   */
+  --pic-w: clamp(105px, 18.2vw, 301px);
+  --copy-w: clamp(150px, 22vw, 360px);
+  /* picture is 4/5, plus the caption line beneath it */
+  --step-h: calc(var(--pic-w) * 1.25 + 40px);
+
+  position: relative;
+  height: var(
+    --stair-h,
+    calc(var(--spacing) * (var(--count) - 1) + var(--step-h))
+  );
+  perspective: 1600px;
+  perspective-origin: 50% 50%;
+}
+
+/*
+ * One step, of either kind.
+ *
+ * Everything that decides where a step goes lives here and nowhere else, which
+ * is what puts the copy on the same path as the pictures: a note and a picture
+ * are handed the identical transform from the identical origin, and differ
+ * only in width and in what is drawn inside them. A step at the front of the
+ * orbit therefore sits exactly on the section's centre line whichever kind it
+ * is, full size and square to the viewer.
+ *
+ * Hung on its own centre — margin-left pulls it back half its width — and
+ * scaled and turned about that same point, so perspective cannot walk it off
+ * the axis. Those two have to agree; when they did not, a front-facing picture
+ * landed 37px off the middle.
+ */
+.step {
+  position: absolute;
+  top: calc(var(--spacing) * var(--i));
+  left: 50%;
+  transform-origin: 50% 50%;
+  transform: translate3d(var(--x, 0), var(--ty, 0), 0) rotateY(var(--ry, 0deg))
+    scale(var(--s, 1));
+  will-change: transform;
+}
+
+/* depth fade x reveal progress — the two multiply instead of clobbering. */
+.picture {
+  width: var(--pic-w);
+  margin-left: calc(var(--pic-w) / -2);
+  opacity: calc(var(--o, 1) * var(--in, 1));
+}
+
+.frame {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  background: linear-gradient(
+    148deg,
+    hsl(var(--h, 34) 6% calc(var(--l, 15%) + 6%)),
+    hsl(var(--h, 34) 5% var(--l, 15%)) 62%,
+    hsl(var(--h, 34) 8% calc(var(--l, 15%) - 5%))
+  );
+  filter: grayscale(0.85) contrast(1.06);
+  overflow: hidden;
+  border: 1px solid rgb(242 239 231 / 0.08);
+  box-shadow: 0 30px 60px -30px rgb(0 0 0 / 0.85);
+}
+
+.frameImg {
+  object-fit: cover;
+}
+
+.frame::after {
+  content: attr(data-n);
+  position: absolute;
+  left: 0.8em;
+  top: 0.6em;
+  font: 500 10px/1 var(--font-mono), ui-monospace, monospace;
+  letter-spacing: 0.08em;
+  color: rgb(242 239 231 / 0.4);
+}
+
+.caption {
+  margin-top: 9px;
+  font: 500 10px/1 var(--font-mono), ui-monospace, monospace;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgb(242 239 231 / 0.42);
+}
+
+/*
+ * The copy. A step like any other — same orbit, same scale, same turn — so it
+ * reads as part of the spiral rather than as labelling stuck to it.
+ *
+ * No frame and no background: a floating block of type is a beat of quiet
+ * between the images. Only its fade is gentler than a picture's, because words
+ * may not recede into the dark the way an image is allowed to.
+ */
+.note {
+  width: var(--copy-w);
+  margin-left: calc(var(--copy-w) / -2);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  opacity: calc(var(--o-copy, 1) * var(--in, 1));
+}
+
+.noteEyebrow {
+  font: 500 9.5px/1 var(--font-mono), ui-monospace, monospace;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgb(200 90 36 / 0.85);
+}
+
+/*
+ * Sized off the viewport rather than the step, so the copy holds a readable
+ * measure at every width while the perspective scale enlarges it by exactly as
+ * much as it enlarges the picture beside it.
+ */
+.noteBody {
+  font: 500 clamp(12px, 1.25vw, 19px) / 1.45 var(--font-archivo), sans-serif;
+  letter-spacing: -0.012em;
+  text-wrap: pretty;
+  color: rgb(242 239 231 / 0.88);
+}
+
+/* ── Reduced motion (§7.2) ─────────────────────────────────────────────── */
+
+/*
+ * No orbit, no depth, no overlap — a plain readable column, pictures and copy
+ * alternating down it. Same steps, same order, same captions; only the
+ * choreography is gone. This is also what renders when JS never arrives, since nothing here is
+ * hidden by default.
+ */
+.section[data-reduced="true"] .stair {
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6vh;
+  perspective: none;
+}
+
+.section[data-reduced="true"] .step {
+  position: static;
+  width: min(88vw, 780px);
+  margin-left: 0;
+  transform: none !important;
+  will-change: auto;
+}
+
+.section[data-reduced="true"] .picture,
+.section[data-reduced="true"] .note {
+  opacity: 1 !important;
+}
+
+.section[data-reduced="true"]::before {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .stair {
+    --pic-w: clamp(105px, 30.8vw, 210px);
+    --copy-w: clamp(150px, 40vw, 280px);
+    perspective: 1000px;
+  }
+
+  .section {
+    padding: 14vh 0 22vh;
+  }
+
+  .noteBody {
+    font-size: clamp(11px, 3vw, 14px);
+    line-height: 1.4;
+  }
+}

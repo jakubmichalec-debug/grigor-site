@@ -1,0 +1,403 @@
+/*
+ * The camera section.
+ *
+ * The section is tall; the camera inside it is sticky and centred, so it does
+ * not move at all while you scroll — scroll only drives the outline resolving
+ * into the photograph. Everything below that point is deliberate dead scroll in
+ * which the camera simply sits there, anchored and usable.
+ *
+ * Every rule here describes the FINISHED state: photo visible, outline gone,
+ * screen lit. That is what renders with no JavaScript and under reduced motion.
+ * The entrance's starting state is written by Camera.tsx and only once motion is
+ * confirmed on, so nothing is ever stranded invisible.
+ */
+/*
+ * --flip is the handover from the dark page to the light one, 0 to 1, driven by
+ * the same scrubbed timeline as everything else in the section. It turns the
+ * ground white while the camera is still standing on it, and everything that
+ * has to stay legible reads the same variable — so the ground and the things on
+ * it can never disagree, which is exactly what would happen if the background
+ * were animated separately from the type over it.
+ *
+ * It inherits, so children pick it up without being told about it.
+ *
+ * At 0 (no JS, reduced motion) the section is simply dark, as it always was.
+ */
+.section {
+  --flip: 0;
+  position: relative;
+  /* Above the ladder, which is sticky at z-index 1 and gets covered by this. */
+  z-index: 2;
+  height: var(--section-vh, 570vh);
+  background: color-mix(
+    in srgb,
+    var(--paper) calc(var(--flip) * 100%),
+    var(--ink)
+  );
+  border-top: 1px solid var(--line);
+}
+
+.stage {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(14px, 1.8vw, 26px);
+  /*
+   * No transform for the centring. Flex does it just as well, and a transform
+   * here would make this element the containing block for anything fixed
+   * inside — the exact trap the viewer already sidesteps with a portal.
+   */
+}
+
+/*
+ * The third term caps the camera against the viewport's HEIGHT, not just its
+ * width. Without it a short wide window renders a camera taller than the screen,
+ * and then no amount of scroll timing can put the whole of it in view before the
+ * drawing starts — which is the one thing the entrance depends on. Kept in step
+ * with MAX_RIG_VH in lib/camera/geometry.ts, which the check reasons about.
+ */
+.rig {
+  position: relative;
+  width: min(82vw, 1100px, calc(78svh * 1075 / 596));
+  aspect-ratio: var(--frame-ratio, 1075 / 596);
+}
+
+.photo {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/*
+ * The screen panel, edge to edge — not the active glass inside it, which is
+ * offset right and down within the panel and looks misplaced when you render to
+ * it. See SCREEN in lib/camera/geometry.ts.
+ *
+ * Positioned in percentages of the rig, so it tracks the photograph at every
+ * viewport without a media query. Its own dark ground shows through before a
+ * clip has loaded, which reads as a powered-down display rather than a hole.
+ */
+.screen {
+  position: absolute;
+  z-index: 2;
+  overflow: hidden;
+  background: #0b0b0a;
+}
+
+/*
+ * `cover`, not `contain`. The screen is 3:2 and clips will not be; bars inside
+ * a camera display look like a rendering bug rather than a choice.
+ */
+.slide {
+  object-fit: cover;
+  transition:
+    opacity var(--d-reveal) var(--e-expo),
+    transform var(--d-reveal) var(--e-expo);
+}
+
+/*
+ * Direction comes from the slide's index relative to the active one, so the
+ * clip leaving moves the same way the clip arriving came from, with no state
+ * tracking which button was pressed.
+ */
+.slide[data-pos="active"] {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.slide[data-pos="before"] {
+  opacity: 0;
+  transform: translateX(-7%);
+}
+
+.slide[data-pos="after"] {
+  opacity: 0;
+  transform: translateX(7%);
+}
+
+/*
+ * The clip itself, over its own still. Same box and same fit, so the moment it
+ * takes over nothing moves — the picture simply starts.
+ *
+ * Transparent until frames are arriving (Camera.tsx sets data-live on the
+ * first `playing` event). A video element with nothing decoded yet paints as an
+ * empty box, and fading that in would dim the still for no reason.
+ */
+.footage {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity var(--d-reveal) var(--e-expo);
+}
+
+.footage[data-live="true"] {
+  opacity: 1;
+}
+
+.outline {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  width: 100%;
+  height: 100%;
+  /*
+   * Flips with the ground. The drawing returns during the exit, by which point
+   * the page is white — left at --paper it would come back invisible.
+   */
+  color: color-mix(in srgb, var(--ink) calc(var(--flip) * 100%), var(--paper));
+  /* Finished state: the drawing has already handed over to the photograph. */
+  opacity: 0;
+  pointer-events: none;
+}
+
+.controls {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+}
+
+/*
+ * Invisible, and far larger than the control each one stands for, so a viewer
+ * who misses the button still hits it. Sizes and positions come from
+ * lib/camera/geometry.ts; scripts/camera.check.mts proves they never overlap
+ * each other or reach a decorative button.
+ */
+.hit {
+  position: absolute;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+/*
+ * The pointer becomes the affordance: over the screen it turns into a play
+ * button. Nothing is drawn on the camera itself, so the clip stays unobstructed
+ * and the cue arrives exactly where the eye already is.
+ *
+ * The hotspot is 20 20 — the circle's centre, not its top-left, or the badge
+ * would hang below and right of where you are actually pointing. `pointer` is
+ * the fallback: cursor images are the one CSS value browsers silently refuse
+ * when they dislike the size or format, and a broken url() with no fallback
+ * leaves you with the default arrow and no signal at all.
+ */
+.open {
+  cursor:
+    url("data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20width=%2240%22%20height=%2240%22%20viewBox=%220%200%2040%2040%22%3E%3Ccircle%20cx=%2220%22%20cy=%2220%22%20r=%2218.5%22%20fill=%22%23c85a24%22%20stroke=%22%230a0a09%22%20stroke-width=%221.6%22/%3E%3Cpath%20d=%22M16.5%2013.2%2027%2020l-10.5%206.8Z%22%20fill=%22%230a0a09%22/%3E%3C/svg%3E")
+      20 20,
+    pointer;
+}
+
+.hit:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.legend {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+/* Buttons either side of the count they change. */
+.steps {
+  display: flex;
+  align-items: center;
+  gap: clamp(14px, 2.2vw, 32px);
+}
+
+/*
+ * The step controls. Orange outline at rest so the camera keeps the eye, solid
+ * orange the moment you reach for one.
+ *
+ * `overflow: hidden` is load-bearing — the fill below is a pseudo-element that
+ * starts scaled to nothing and grows past the button's edges.
+ */
+.step {
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  /* Past the touch minimum on both axes without needing a media query. */
+  min-height: 56px;
+  padding: 17px 30px;
+  /*
+   * Both the border and the label deepen as the ground lightens. --accent is
+   * 4.53:1 on ink but only 3.70:1 on paper, and a 13px label is nowhere near
+   * large enough for the relaxed threshold — so on white it becomes the deeper
+   * orange, which is 5.6:1.
+   */
+  border: 2px solid
+    color-mix(in srgb, var(--accent-deep) calc(var(--flip) * 100%), var(--accent));
+  background: none;
+  color: color-mix(
+    in srgb,
+    var(--accent-deep) calc(var(--flip) * 100%),
+    var(--accent)
+  );
+  cursor: pointer;
+  transition: color var(--d-stagger) var(--e-quart);
+}
+
+/*
+ * The fill. Scaled from the edge the button points at, so the colour travels
+ * the same way the clip is about to: leftward on prev, rightward on next. A
+ * fill that always swept the same way would say "button"; this one says which
+ * button.
+ */
+.step::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: color-mix(
+    in srgb,
+    var(--accent-deep) calc(var(--flip) * 100%),
+    var(--accent)
+  );
+  transform: scaleX(0);
+  transition: transform var(--d-stagger) var(--e-quart);
+  z-index: 0;
+}
+
+.step[data-dir="prev"]::before {
+  transform-origin: right center;
+}
+
+.step[data-dir="next"]::before {
+  transform-origin: left center;
+}
+
+.step:hover::before,
+.step:focus-visible::before {
+  transform: scaleX(1);
+}
+
+.step:hover,
+.step:focus-visible {
+  /* Against a solid accent fill, the page's paper is the readable choice. */
+  color: var(--paper);
+}
+
+.step:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+/* Above the fill, which is why these are spans and not bare text nodes. */
+.stepLabel,
+.stepArrow {
+  position: relative;
+  z-index: 1;
+  font: 700 13px/1 var(--font-mono), ui-monospace, monospace;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.stepArrow {
+  font-size: 10px;
+  transition: transform var(--d-hover) var(--e-quart);
+}
+
+/* The arrow leads the fill out in the same direction. */
+.step[data-dir="prev"]:hover .stepArrow,
+.step[data-dir="prev"]:focus-visible .stepArrow {
+  transform: translateX(-3px);
+}
+
+.step[data-dir="next"]:hover .stepArrow,
+.step[data-dir="next"]:focus-visible .stepArrow {
+  transform: translateX(3px);
+}
+
+.step:active {
+  transform: translateY(1px);
+}
+
+.caption {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  /* Steady width so stepping between clips does not shuffle the buttons. */
+  min-width: 8em;
+}
+
+.captionTitle,
+.captionCount {
+  font: 700 12px/1 var(--font-mono), ui-monospace, monospace;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: color-mix(
+    in srgb,
+    rgb(10 10 9 / 0.72) calc(var(--flip) * 100%),
+    rgb(242 239 231 / 0.6)
+  );
+}
+
+.captionCount {
+  color: color-mix(
+    in srgb,
+    rgb(10 10 9 / 0.45) calc(var(--flip) * 100%),
+    rgb(242 239 231 / 0.34)
+  );
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ── Reduced motion (§7.2) ──────────────────────────────────────────────── */
+
+/*
+ * No sticky, no long scroll, no morph — the camera is simply present, at its
+ * natural size, fully interactive. The section collapses to the height of its
+ * contents so the dead scroll that exists only to time an animation goes away
+ * with the animation.
+ */
+.section[data-reduced="true"] {
+  height: auto;
+  padding: 14vh 0;
+}
+
+.section[data-reduced="true"] .stage {
+  position: static;
+  height: auto;
+}
+
+@media (max-width: 900px) {
+  .steps {
+    gap: 12px;
+  }
+
+  .step {
+    padding: 15px 20px;
+  }
+
+  .rig {
+    width: min(92vw, calc(78svh * 1075 / 596));
+  }
+
+  /*
+   * No shorter on a phone. The section's length is not padding to be trimmed —
+   * it is the five phases, each sized in viewport heights, and cutting it would
+   * compress the entry and exit rather than remove dead scroll.
+   */
+}

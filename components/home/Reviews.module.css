@@ -1,0 +1,548 @@
+/*
+ * Reviews. The one light section on the page.
+ *
+ * Everything else runs on --ink; this inverts to --paper with near-black text,
+ * which is the point — after four dark sections the eye needs a change of
+ * ground.
+ *
+ * The finished state is what is written here. The headline's offset start is
+ * applied by Reviews.tsx and only once motion is confirmed on, so with no JS the
+ * words are simply present.
+ */
+.section {
+  position: relative;
+  /*
+   * Above the camera section, which carries z-index 2 and an opaque ground of
+   * its own. The scatter below is a parallax layer: as it drifts upward it
+   * carries its topmost frames a little past this section's top edge, and
+   * without this the camera painted straight over them — the two frames nearest
+   * the top arrived with a hard horizontal cut across them.
+   *
+   * Safe because the camera has finished turning the page white by the time its
+   * last screenful is in view (--flip is 1 at the boundary) and its own
+   * contents have cleared that band, so the frames complete on the same paper
+   * they started on. See the note on .scatter for the other half of this.
+   */
+  z-index: 3;
+  color: var(--ink);
+  padding: 0 0 6vh;
+
+  /*
+   * Plain paper. The camera section above now finishes its own scroll on paper
+   * — it turns the page white while the camera is still on screen — so there is
+   * nothing to fade from and a gradient here would paint a dark band across a
+   * boundary that has already gone.
+   */
+  background-color: var(--paper);
+
+  /*
+   * The scatter is 2% wider than the section on each side. Left alone that
+   * extra becomes page width: a desktop never shows it, because the body hides
+   * it, but a phone widens the whole page to fit and every section ends up
+   * with a strip of nothing down its right-hand edge.
+   *
+   * `clip`, and across only. `hidden` would turn this into a scroll container
+   * — which breaks the sticky cards below — and would cut the frames that are
+   * meant to drift over the top edge.
+   */
+  overflow-x: clip;
+}
+
+/* ── headline and call to action ───────────────────────────────────────── */
+
+.body {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(34px, 5vw, 68px);
+  padding: clamp(90px, 16vh, 190px) clamp(16px, 4vw, 64px) 0;
+}
+
+/*
+ * Two lines, deliberately not centred on each other: the first sits left, the
+ * second right. They pass each other on the way in — one dropping, one rising —
+ * and the offset is what keeps that legible once they have landed.
+ */
+/*
+ * The scatter sits behind the type, filling the headline block. `inset` rather
+ * than a fixed size so it tracks whatever the body ends up being.
+ *
+ * Top inset 0, unlike the other three: at rest every frame has to be inside the
+ * section. It used to start 6% above, which put the two topmost frames over the
+ * boundary before the parallax had moved anything at all — visible with no JS
+ * and under reduced motion, where there is no drift to blame. The frames still
+ * cross that edge once the drift lifts them, and are allowed to: the section's
+ * z-index above lets them finish rather than be cut.
+ */
+.scatter {
+  position: absolute;
+  inset: 0 -2% -6%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/*
+ * Every frame reads the same two variables off the container and scales them by
+ * its own --depth, so the pointer handler writes twice per move regardless of
+ * how many frames there are. The px lives here because the JS side keeps the
+ * values unitless for quickTo to interpolate.
+ */
+.scatterFrame {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: var(--w);
+  aspect-ratio: 3 / 2;
+  border-radius: 6px;
+  overflow: hidden;
+  opacity: 0.5;
+  filter: grayscale(0.35);
+  box-shadow: 0 18px 40px -22px rgb(10 10 9 / 0.55);
+  transform:
+    translate3d(
+      calc(var(--lean-x, 0) * 1px * var(--depth)),
+      calc((var(--drift, 0) + var(--lean-y, 0)) * 1px * var(--depth)),
+      0
+    )
+    rotate(var(--rot));
+  will-change: transform;
+}
+
+.scatterImg {
+  object-fit: cover;
+}
+
+/* Above the scatter, and the reason the frames keep clear of the centre. */
+.headline,
+.magnet {
+  position: relative;
+  z-index: 1;
+}
+
+.headline {
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 15ch);
+  font: 700 clamp(38px, 7.4vw, 118px) / 0.98 var(--font-archivo), sans-serif;
+  letter-spacing: -0.035em;
+}
+
+/*
+ * The mask. `overflow: clip` rather than hidden: hidden would make each of
+ * these a scroll container, and they would also break the section's own sticky
+ * children further down.
+ */
+.line {
+  display: block;
+  overflow: clip;
+  /* Room for descenders, which hang below the line box and would be sheared. */
+  padding-bottom: 0.1em;
+}
+
+.line[data-from="top"] {
+  align-self: flex-start;
+  text-align: left;
+}
+
+.line[data-from="bottom"] {
+  align-self: flex-end;
+  text-align: right;
+}
+
+/*
+ * The percentage lives in the transform, not in a value JavaScript computed.
+ * The browser resolves it against this element's own box at paint time, so a
+ * font swap or any other reflow cannot leave the offset stale — see the note in
+ * Reviews.tsx for the bug this avoids.
+ */
+.lineInner {
+  display: block;
+  transform: translateY(var(--slide, 0));
+}
+
+/*
+ * Solid orange, not an outline. Orange text on paper is 3.70:1 and this label is
+ * too small to qualify as large text; ink on the same orange is 4.66:1 and
+ * clears AA outright. It is the darker pairing that is the accessible one here,
+ * which is the opposite of the instinct.
+ */
+/*
+ * The magnet. This is what GSAP translates toward the pointer; the link inside
+ * keeps its own transform for the hover lift. Splitting them means neither has
+ * to know about the other.
+ */
+.magnet {
+  display: inline-flex;
+  will-change: transform;
+}
+
+.cta {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 62px;
+  padding: 20px 38px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--ink);
+  transition:
+    transform var(--d-hover) var(--e-quart),
+    box-shadow var(--d-hover) var(--e-quart);
+}
+
+.cta:hover,
+.cta:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px -14px rgb(200 90 36 / 0.85);
+}
+
+.cta:active {
+  transform: translateY(0);
+}
+
+/*
+ * Rolling label (§6.1).
+ *
+ * The box takes its height from the first copy, in flow; the second is pulled
+ * out of flow and parked directly beneath it. Sizing the box by hand instead —
+ * `height: 1em` — is what made the label look doubled: `em` on the box resolved
+ * against the link's inherited 16px while the labels resolved against their own
+ * 13px, so the box was taller than one copy and the spare showed the next one.
+ * Letting the content set the height means the two can never disagree.
+ */
+.ctaRoll {
+  position: relative;
+  overflow: hidden;
+}
+
+.ctaLabel {
+  display: block;
+  font: 700 13px/1.15 var(--font-mono), ui-monospace, monospace;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition: transform var(--d-stagger) var(--e-quart);
+}
+
+.ctaLabel + .ctaLabel {
+  position: absolute;
+  top: 100%;
+  left: 0;
+}
+
+.cta:hover .ctaLabel,
+.cta:focus-visible .ctaLabel {
+  transform: translateY(-100%);
+}
+
+.ctaArrow {
+  font-size: 15px;
+  line-height: 1;
+  transition: transform var(--d-stagger) var(--e-quart);
+}
+
+.cta:hover .ctaArrow,
+.cta:focus-visible .ctaArrow {
+  transform: translateX(5px);
+}
+
+/* ── the stack of reviews ──────────────────────────────────────────────── */
+
+/*
+ * --stack-step is the band of each card left showing once the next one covers
+ * it, and the gap is the scroll each card takes to arrive.
+ *
+ * 24px is a deliberate borrowing: the Gaspar template this was modelled on
+ * steps its five cards by 20px, which leaves an edge rather than a tenth of the
+ * card. A step proportional to the card height (5.8vh, the literal "ninety
+ * percent covered") reads as a loose fan; a small fixed step reads as a deck.
+ * Fixed also means the sliver stays the same size as the cards grow, so the
+ * stack looks the same on a laptop and a large display.
+ */
+.stack {
+  --stack-top: clamp(16px, 8vh, 96px);
+  --stack-step: 24px;
+  --card-h: 70vh;
+  display: flex;
+  flex-direction: column;
+  gap: 32vh;
+  margin: clamp(90px, 16vh, 200px) auto 0;
+  /*
+   * The bottom padding is not spacing — it is the last card's travel.
+   *
+   * A sticky element cannot move past its containing block, and that block ends
+   * at the final card unless something extends it. Without this the last card
+   * runs out of scroll before it reaches its stop and freezes 60px short, so the
+   * deck never squares up. The padding gives it that distance and then holds the
+   * finished stack on screen for a beat.
+   */
+  padding: 0 clamp(16px, 4vw, 64px) 48vh;
+  width: min(100%, 1240px);
+  list-style: none;
+}
+
+/*
+ * Sticky, not scripted. Each card stops one step lower than the one before, so
+ * the next card scrolling up over it leaves that step showing. The whole effect
+ * is those three lines; a scrubbed timeline would be a less reliable way to say
+ * the same thing.
+ *
+ * The surface is a translucent near-black rather than a flat one, so the paper
+ * behind warms it to a soft charcoal instead of punching a black hole in the
+ * section. The gradient lifts the top edge — which matters more than it sounds,
+ * because once the deck is stacked the top 24px is all you see of every card
+ * but the last.
+ */
+.card {
+  position: sticky;
+  top: calc(var(--stack-top) + var(--i) * var(--stack-step));
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.82fr);
+  align-items: stretch;
+  gap: clamp(28px, 3.6vw, 62px);
+  min-height: var(--card-h);
+  padding: clamp(34px, 4.8vw, 76px);
+  border-radius: 26px;
+  /*
+   * Opaque, and these three values are the translucent ones already composited
+   * over paper — same charcoal to the eye, nothing showing through. The
+   * translucency was the bug: once a card slid over another you could read the
+   * quote underneath straight through it. Fading the covered card's text would
+   * have been a second animation to keep in sync with a stack that is otherwise
+   * pure layout; making the surface solid removes the problem instead.
+   */
+  background: linear-gradient(
+    160deg,
+    rgb(50 48 45) 0%,
+    rgb(42 42 39) 46%,
+    rgb(30 30 29) 100%
+  );
+  color: var(--paper);
+  /* Catches the light along the lifted edge and separates card from card. */
+  border-top: 1px solid rgb(242 239 231 / 0.16);
+  /*
+   * Cast upward. The shadow belongs to the card arriving from below, so it has
+   * to fall on the one it is covering — otherwise the stack reads as flat.
+   */
+  box-shadow:
+    0 -30px 70px -36px rgb(10 10 9 / 0.7),
+    0 -2px 0 0 rgb(10 10 9 / 0.35);
+  overflow: hidden;
+  isolation: isolate;
+}
+
+/*
+ * A quotation mark, set enormous and cropped by the card's own corner. Purely
+ * decorative — the quote below is already marked up as one — so it is hidden
+ * from assistive tech and sits behind the content.
+ */
+.card::before {
+  content: "“";
+  position: absolute;
+  top: -0.34em;
+  right: 0.04em;
+  z-index: -1;
+  font: 700 clamp(200px, 26vw, 380px) / 1 var(--font-archivo), sans-serif;
+  color: var(--accent);
+  opacity: 0.13;
+  pointer-events: none;
+}
+
+.cardText {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: clamp(24px, 4vh, 48px);
+  min-width: 0;
+}
+
+/*
+ * The still. Holds 16:9 whether or not there is an image in it, so dropping one
+ * in later cannot change the card's proportions — which is the point of building
+ * the slot now rather than leaving a gap to fill.
+ */
+.media {
+  position: relative;
+  align-self: center;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 14px;
+  overflow: hidden;
+  background: rgb(12 12 11 / 0.55);
+  border: 1px solid rgb(242 239 231 / 0.1);
+}
+
+.mediaImage {
+  object-fit: cover;
+}
+
+.mediaEmpty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font: 700 10px/1 var(--font-mono), ui-monospace, monospace;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: rgb(242 239 231 / 0.22);
+}
+
+/*
+ * Takes the deeper orange even on the dark card: the fill is --accent, and
+ * --accent against --accent-deep text is the pairing that stays legible when
+ * the button is hovered. At rest it is a hairline, so it reads as a control
+ * rather than competing with the quote above it.
+ */
+.watch {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  min-height: 46px;
+  padding: 13px 22px;
+  border: 1px solid rgb(200 90 36 / 0.55);
+  border-radius: 999px;
+  color: var(--accent);
+  transition:
+    background-color var(--d-hover) var(--e-quart),
+    border-color var(--d-hover) var(--e-quart),
+    color var(--d-hover) var(--e-quart);
+}
+
+.watch:hover,
+.watch:focus-visible {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--ink);
+}
+
+.watchIcon {
+  font-size: 9px;
+  transition: transform var(--d-hover) var(--e-quart);
+}
+
+.watch:hover .watchIcon,
+.watch:focus-visible .watchIcon {
+  transform: translateX(3px);
+}
+
+.watchLabel {
+  font: 700 11px/1 var(--font-mono), ui-monospace, monospace;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.quote {
+  font: 500 clamp(21px, 2.9vw, 44px) / 1.24 var(--font-archivo), sans-serif;
+  letter-spacing: -0.022em;
+  text-wrap: pretty;
+  max-width: 20ch;
+}
+
+.attribution {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+/* Sits on a rule that runs to the attribution, so the footer reads as one line. */
+.index {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font: 700 11px/1 var(--font-mono), ui-monospace, monospace;
+  letter-spacing: 0.18em;
+  color: var(--accent);
+}
+
+.index::after {
+  content: "";
+  width: clamp(28px, 6vw, 90px);
+  height: 1px;
+  background: linear-gradient(to right, var(--accent), rgb(200 90 36 / 0));
+}
+
+.who {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  text-align: right;
+}
+
+.name {
+  font: 700 12px/1 var(--font-mono), ui-monospace, monospace;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgb(242 239 231 / 0.92);
+}
+
+.role {
+  font: 500 11px/1 var(--font-mono), ui-monospace, monospace;
+  letter-spacing: 0.12em;
+  color: rgb(242 239 231 / 0.5);
+}
+
+/* ── Reduced motion (§7.2) ─────────────────────────────────────────────── */
+
+/*
+ * Nothing to disable here any more: the headline's reveal is gated in the
+ * component, and the stack is sticky positioning rather than animation, so it
+ * behaves identically either way.
+ */
+
+@media (max-width: 900px) {
+  .card {
+    border-radius: 18px;
+  }
+
+  .stack {
+    --card-h: 66vh;
+    --stack-step: 16px;
+    gap: 26vh;
+  }
+
+  .quote {
+    max-width: none;
+  }
+}
+
+/*
+ * A phone held upright. Side by side, each half of the card is about a third
+ * of the screen: the quote wraps into a ragged column and the still shrinks to
+ * a thumbnail. So the card becomes one column, read top to bottom — the quote,
+ * the film it is about, the way in to that film, and who said it.
+ *
+ * Upright only. On its side a phone is wide enough for the two halves and far
+ * too short for a stacked card, which has to fit inside the screen to stick.
+ */
+@media (max-width: 600px) and (orientation: portrait) {
+  .card {
+    grid-template-columns: minmax(0, 1fr);
+    /* The spare height goes to the attribution's row, which keeps it at the foot. */
+    grid-template-rows: auto auto auto 1fr;
+  }
+
+  /*
+   * Dissolved, so its three children become rows of the card in their own
+   * right and the still can sit between the quote and its button.
+   */
+  .cardText {
+    display: contents;
+  }
+
+  .watch {
+    order: 1;
+    /* In a column `align-self` kept it from stretching; in a grid this does. */
+    justify-self: start;
+  }
+
+  .attribution {
+    order: 2;
+    align-self: end;
+  }
+}
