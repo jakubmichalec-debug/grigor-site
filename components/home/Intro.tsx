@@ -262,8 +262,6 @@ export function Intro() {
       };
       measure();
 
-      const zoom = { p: 0 };
-
       const tl = gsap.timeline({
         defaults: { ease: "none" },
         scrollTrigger: {
@@ -289,13 +287,23 @@ export function Intro() {
        * ratio of change rather than the difference. scale = target^p holds the
        * perceived speed constant the whole way in.
        */
-      tl.to(
-        zoom,
-        {
-          p: 1,
-          duration: 1,
-          onUpdate: () => gsap.set(wallEl, { scale: Math.pow(target, zoom.p) }),
-        },
+      /*
+       * A real tween of the wall's own scale, with the curve as its ease —
+       * not a number tweened on the side and copied across in onUpdate. When
+       * ScrollTrigger refreshes it puts the timeline back where it was with
+       * callbacks suppressed, so a copied value is simply never written:
+       * arriving at "/#header" from the gallery left the chrome up and the
+       * hero still the size of a tile. The ease reads `target` when called,
+       * so it stays exact after a re-measure.
+       */
+      const exponential = (p: number) =>
+        Math.abs(target - 1) < 1e-6
+          ? p
+          : (Math.pow(target, p) - 1) / (target - 1);
+      tl.fromTo(
+        wallEl,
+        { scale: 1 },
+        { scale: () => target, duration: 1, ease: exponential },
         0,
       );
 

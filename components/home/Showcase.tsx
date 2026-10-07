@@ -490,6 +490,12 @@ export function Showcase() {
                   alt={step.alt}
                   fill
                   sizes="(max-width: 900px) 46vw, 28vw"
+                  /*
+                   * Eager: the intro's zoom is the time there is to fetch
+                   * these. Left lazy they are only asked for as the section
+                   * nears the screen, and the frames arrive empty.
+                   */
+                  loading="eager"
                   className={s.frameImg}
                 />
               </div>

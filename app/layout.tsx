@@ -43,7 +43,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           suppressHydrationWarning.
         */}
         <noscript>
-          <style>{`.enters-with-motion{opacity:1}`}</style>
+          <style>{`.enters-with-motion{opacity:1}[data-brandmark]{--in:1}`}</style>
         </noscript>
         <SmoothScroll />
         {children}

@@ -6,10 +6,11 @@
  * There is no fade out. The headline leaves by being pushed off the top by the
  * showcase's bottom edge, the way a sticky element does — see Brandmark.tsx.
  *
- * --in defaults to 1, i.e. visible: nothing is hidden in CSS, only by the
- * script and only once motion is confirmed on. That is what leaves the
- * headline readable when JS never arrives, and it costs no flash because
- * useGSAP runs in useLayoutEffect, before paint.
+ * --in defaults to 0, i.e. hidden. It used to default to visible and be
+ * hidden by the script, but the server-rendered page paints before any script
+ * runs, so on a slow first load the headline sat on top of the wall until
+ * hydration. Reduced motion (below) and the <noscript> rule in the root
+ * layout un-hide it for the cases where no script will.
  */
 .mark {
   position: fixed;
@@ -22,7 +23,7 @@
   text-transform: uppercase;
   color: var(--paper);
   pointer-events: none;
-  opacity: var(--in, 1);
+  opacity: var(--in, 0);
   will-change: opacity;
 }
 
@@ -47,6 +48,12 @@
  * layer to live on. It becomes an ordinary block between the two sections —
  * same words, same order, no choreography.
  */
+@media (prefers-reduced-motion: reduce) {
+  .mark {
+    --in: 1;
+  }
+}
+
 .mark[data-reduced="true"] {
   position: static;
   opacity: 1;

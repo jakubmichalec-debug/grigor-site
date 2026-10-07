@@ -192,8 +192,6 @@ export function Brandmark() {
 
       measure();
       apply(window.scrollY);
-      /* The CSS default is visible (see Brandmark.module.css); hiding happens
-       * here, so a browser that never runs this still shows the headline. */
       el.style.setProperty("--in", "0");
 
       /*
@@ -286,6 +284,7 @@ export function Brandmark() {
     <h1
       ref={root}
       className={s.mark}
+      data-brandmark=""
       data-reduced={reduced ? "true" : undefined}
     >
       <span className={s.l1}>Grigor</span>
