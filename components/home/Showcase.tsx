@@ -471,7 +471,6 @@ export function Showcase() {
             >
               <div
                 className={s.frame}
-                data-n={String(i + 1).padStart(2, "0")}
                 style={
                   {
                     "--l": `${lightness(i)}%`,

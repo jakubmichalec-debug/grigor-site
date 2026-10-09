@@ -177,16 +177,6 @@
   object-fit: cover;
 }
 
-.frame::after {
-  content: attr(data-n);
-  position: absolute;
-  left: 0.8em;
-  top: 0.6em;
-  font: 500 10px/1 var(--font-mono), ui-monospace, monospace;
-  letter-spacing: 0.08em;
-  color: rgb(242 239 231 / 0.4);
-}
-
 .caption {
   margin-top: 9px;
   font: 500 10px/1 var(--font-mono), ui-monospace, monospace;

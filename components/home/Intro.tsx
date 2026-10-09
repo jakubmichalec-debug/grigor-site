@@ -416,7 +416,6 @@ export function Intro() {
               ) : (
                 <div
                   key={i}
-                  data-n={tileNo(i)}
                   className={s.tile}
                   style={{ "--l": `${lightness(i)}%` } as CSSProperties}
                 >

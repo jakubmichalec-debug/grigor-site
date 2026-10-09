@@ -86,18 +86,6 @@
   object-fit: cover;
 }
 
-.tile::after {
-  content: attr(data-n);
-  position: absolute;
-  left: 0.5em;
-  bottom: 0.35em;
-  font: 500 9px/1 var(--font-mono), ui-monospace, monospace;
-  letter-spacing: 0.08em;
-  /* Over footage now rather than flat grey, so it needs a little more weight. */
-  color: rgb(242 239 231 / 0.5);
-  text-shadow: 0 0 6px rgb(10 10 9 / 0.7);
-}
-
 /*
  * The one in colour.
  *
