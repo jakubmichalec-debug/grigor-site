@@ -9,7 +9,13 @@ import { useGSAP } from "@gsap/react";
 import { EASE, SCROLL } from "@/lib/motion/tokens";
 import { useReducedMotion } from "@/lib/motion/useReducedMotion";
 import { asset } from "@/lib/media/asset";
-import { getSound, setSound, useSound } from "@/lib/media/sound";
+import {
+  getSound,
+  setBlocked,
+  setSound,
+  useSound,
+  useSoundBlocked,
+} from "@/lib/media/sound";
 import { prefersStills, useOnScreen } from "@/lib/media/useOnScreen";
 import s from "./Intro.module.css";
 
@@ -117,6 +123,37 @@ const POSTER = { "--poster": `url("${asset("/hero/poster.jpg")}")` } as CSSPrope
  */
 const GAIN_RAMP = 0.4;
 
+/**
+ * Fades the reel's own volume up or down and mutes it once it reaches silence.
+ * Shared by the toggle and by the first gesture that lets blocked sound start.
+ * The tween in flight is kept in `ramp` so a second call replaces it.
+ */
+function fadeSound(
+  el: HTMLVideoElement,
+  next: boolean,
+  ramp: { current: gsap.core.Tween | null },
+) {
+  ramp.current?.kill();
+  const gain = { value: next ? 0 : el.volume };
+  if (next) {
+    el.volume = 0;
+    el.muted = false;
+  }
+  ramp.current = gsap.to(gain, {
+    value: next ? 1 : 0,
+    duration: GAIN_RAMP,
+    ease: EASE.none,
+    onUpdate: () => {
+      el.volume = Math.min(1, Math.max(0, gain.value));
+    },
+    onComplete: () => {
+      if (next) return;
+      el.muted = true;
+      el.volume = 1;
+    },
+  });
+}
+
 export function Intro() {
   const stage = useRef<HTMLElement>(null);
   const parallax = useRef<HTMLDivElement>(null);
@@ -134,6 +171,7 @@ export function Intro() {
   const [held, setHeld] = useState(false);
   const reduced = useReducedMotion();
   const sound = useSound();
+  const blocked = useSoundBlocked();
   /* §4.1 — "Pause when the hero leaves the viewport and when the tab is hidden." */
   const onScreen = useOnScreen(stage);
   const rolling = playing && onScreen && !held;
@@ -178,16 +216,42 @@ export function Intro() {
        */
       if (refusal.name !== "NotAllowedError" || el.muted) return;
       /*
-       * "Sound: On" restored from earlier in the session, in a document that
-       * has not been clicked yet — a reload does this. Audio cannot start
-       * without a gesture, so play silent and put the toggle back to the
-       * truth rather than leave it claiming a sound nobody can hear.
+       * Sound is wanted — it is the default — but this document has not had a
+       * click or key press yet, and scrolling does not count. Audio cannot
+       * start without one, so play silent, say so (the toggle reads "Off"
+       * rather than claim a sound nobody can hear), and let the effect below
+       * start it on the first gesture.
        */
       el.muted = true;
-      setSound(false);
+      setBlocked(true);
       el.play().catch(() => {});
     });
   }, [rolling]);
+
+  /*
+   * The first gesture after a refusal starts the sound. Listened for on the
+   * window, so it can be a click anywhere or a key press — whichever the
+   * visitor does first. The toggle is left to its own click handler, which
+   * would otherwise be undone by this one running a moment earlier.
+   */
+  useEffect(() => {
+    if (!blocked) return;
+    const release = (event: Event) => {
+      if (event instanceof KeyboardEvent && /^(Shift|Control|Alt|Meta)$/.test(event.key)) {
+        return;
+      }
+      const target = event.target;
+      if (target instanceof Element && target.closest("[data-sound-toggle]")) return;
+      const el = reel.current;
+      setSound(true);
+      if (el) fadeSound(el, true, ramp);
+    };
+    const events = ["pointerdown", "keydown", "touchend"] as const;
+    events.forEach((name) => window.addEventListener(name, release, true));
+    return () => {
+      events.forEach((name) => window.removeEventListener(name, release, true));
+    };
+  }, [blocked]);
 
   /*
    * Back at the wall, the reel goes back to its first frame. The tile at rest
@@ -209,27 +273,7 @@ export function Intro() {
     const el = reel.current;
     const next = !sound;
     setSound(next);
-    if (!el) return;
-
-    ramp.current?.kill();
-    const gain = { value: next ? 0 : el.volume };
-    if (next) {
-      el.volume = 0;
-      el.muted = false;
-    }
-    ramp.current = gsap.to(gain, {
-      value: next ? 1 : 0,
-      duration: GAIN_RAMP,
-      ease: EASE.none,
-      onUpdate: () => {
-        el.volume = Math.min(1, Math.max(0, gain.value));
-      },
-      onComplete: () => {
-        if (next) return;
-        el.muted = true;
-        el.volume = 1;
-      },
-    });
+    if (el) fadeSound(el, next, ramp);
   };
 
   useGSAP(
@@ -493,6 +537,7 @@ export function Intro() {
             className={s.sound}
             aria-label="Sound"
             aria-pressed={sound}
+            data-sound-toggle=""
             onClick={toggleSound}
           >
             <span
