@@ -14,6 +14,7 @@ import { DrawSVGPlugin } from "gsap/DrawSVGPlugin";
 import { useGSAP } from "@gsap/react";
 import { EASE, SCROLL } from "@/lib/motion/tokens";
 import { useReducedMotion } from "@/lib/motion/useReducedMotion";
+import { usePhone } from "@/lib/motion/usePhone";
 import { asset } from "@/lib/media/asset";
 import { prefersStills, useOnScreen } from "@/lib/media/useOnScreen";
 import { CLIPS, CLIP_COUNT, stepClip, type Clip } from "@/lib/camera/clips";
@@ -21,6 +22,7 @@ import {
   FRAME,
   HIT,
   PHASE,
+  PHONE_SCROLL,
   SCREEN,
   SCROLL_PLAN,
   TIMELINE_VH,
@@ -39,7 +41,6 @@ gsap.registerPlugin(ScrollTrigger, DrawSVGPlugin, useGSAP);
  * sticky and centred, so how late the drawing may start is a function of how
  * tall the camera is. camera.check.mts asserts the relationship holds.
  */
-const SECTION_VH = SCROLL_PLAN.sectionVh;
 
 /**
  * The footage for the clip the screen is on.
@@ -95,6 +96,9 @@ export function Camera() {
   /* Named so the viewer can hand focus back here, whatever opened it. */
   const openBtn = useRef<HTMLButtonElement>(null);
   const reduced = useReducedMotion();
+  const phone = usePhone();
+  /* Phones scrub the same timeline across a shorter runway; see PHONE_SCROLL. */
+  const sectionVh = phone ? PHONE_SCROLL.sectionVh : SCROLL_PLAN.sectionVh;
   /* §7.1 — the loop only runs while the screen is actually in front of someone. */
   const displayVisible = useOnScreen(display);
 
@@ -197,7 +201,7 @@ export function Camera() {
            * viewer meets a camera that has already finished drawing itself.
            */
           start: `top ${SCROLL_PLAN.drawEnterPct}%`,
-          end: `+=${TIMELINE_VH}%`,
+          end: `+=${TIMELINE_VH * (phone ? PHONE_SCROLL.scale : 1)}%`,
           scrub: SCROLL.scrub,
           invalidateOnRefresh: true,
         },
@@ -347,7 +351,7 @@ export function Camera() {
 
       ScrollTrigger.refresh();
     },
-    { scope: section, dependencies: [reduced], revertOnUpdate: true },
+    { scope: section, dependencies: [reduced, phone], revertOnUpdate: true },
   );
 
   const clip = CLIPS[index];
@@ -359,7 +363,7 @@ export function Camera() {
       data-camera=""
       data-reduced={reduced ? "true" : undefined}
       aria-labelledby="camera-heading"
-      style={{ "--section-vh": `${SECTION_VH}vh` } as CSSProperties}
+      style={{ "--section-vh": `${sectionVh}vh` } as CSSProperties}
     >
       <h2 className={s.srOnly} id="camera-heading">
         Selected clips, shown on the camera

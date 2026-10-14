@@ -152,3 +152,29 @@
     grid-column: 1 / -1;
   }
 }
+
+@media (max-width: 600px) {
+  .footer {
+    padding-top: 48px;
+  }
+
+  /*
+   * Thirteen pixels of type with eleven between rows is a target about as tall
+   * as the text. Padding takes each to 44px and the negative margin gives the
+   * space back, so the columns keep their rhythm.
+   */
+  .list .link,
+  .legal .link {
+    display: inline-block;
+    padding: 15px 8px;
+    margin: -15px -8px;
+  }
+
+  .list {
+    gap: 14px;
+  }
+
+  .bottom {
+    align-items: center;
+  }
+}

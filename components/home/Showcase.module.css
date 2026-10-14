@@ -271,3 +271,66 @@
     line-height: 1.4;
   }
 }
+
+/*
+ * ── Phones ────────────────────────────────────────────────────────────────
+ *
+ * No orbit. A step is most of a phone's width, so the spiral either swings
+ * notes off the screen or barely moves, and its 2.8 screens of height are
+ * mostly air. Each picture and the note after it share a row instead (the
+ * component writes --row), alternating sides so the eye still zigzags down.
+ * Same steps, same order; the reveal is the only motion left.
+ */
+@media (max-width: 600px) {
+  .section {
+    padding: 9vh 0 10vh;
+  }
+
+  .section::before {
+    display: none;
+  }
+
+  .stair {
+    --pic-w: 100%;
+    --copy-w: 100%;
+    height: auto !important;
+    perspective: none;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    gap: 5vh 5vw;
+    padding: 0 6vw;
+  }
+
+  .step {
+    position: static;
+    margin-left: 0;
+    grid-row: var(--row);
+    transform: translate3d(0, var(--ty, 0), 0);
+    will-change: auto;
+  }
+
+  /* Even rows: picture left, note right. Odd rows swap. */
+  .picture {
+    grid-column: 1;
+    opacity: var(--in, 1);
+  }
+
+  .note {
+    grid-column: 2;
+    opacity: var(--in, 1);
+  }
+
+  .step:nth-child(4n + 3) {
+    grid-column: 2;
+  }
+
+  .step:nth-child(4n + 4) {
+    grid-column: 1;
+  }
+
+  .noteBody {
+    font-size: 14px;
+    line-height: 1.45;
+  }
+}

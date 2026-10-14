@@ -401,3 +401,19 @@
    * compress the entry and exit rather than remove dead scroll.
    */
 }
+
+/*
+ * Phones. The frame is wider than the shell (the strap lugs), so drawing it a
+ * little wider than the screen keeps the body edge to edge and lets only the
+ * lugs bleed; `clip` trims them without becoming a scroll container, which
+ * would stop the stage sticking.
+ */
+@media (max-width: 600px) {
+  .section {
+    overflow-x: clip;
+  }
+
+  .rig {
+    width: 108vw;
+  }
+}

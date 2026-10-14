@@ -7,6 +7,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import { DUR, EASE, SCROLL } from "@/lib/motion/tokens";
 import { useReducedMotion } from "@/lib/motion/useReducedMotion";
+import { usePhone } from "@/lib/motion/usePhone";
 import { asset } from "@/lib/media/asset";
 import {
   HELIX_COPY_BACK_OPACITY,
@@ -213,6 +214,12 @@ export function Showcase() {
   const section = useRef<HTMLElement>(null);
   const stair = useRef<HTMLDivElement>(null);
   const reduced = useReducedMotion();
+  /*
+   * On a phone the orbit has no room: a step is most of the screen wide, and the
+   * bleed policy in helix.ts pushes notes off the edge. Phones get a plain
+   * two-column rows layout (see the stylesheet) with only the reveal.
+   */
+  const phone = usePhone();
 
   useGSAP(
     () => {
@@ -271,8 +278,7 @@ export function Showcase() {
          * placement transform this very function is about to apply.
          */
         const stepH = Math.max(...steps.map((el) => el.offsetHeight));
-        const reserved =
-          (COUNT - 1) * SPACING + (stepH * (1 + maxScale())) / 2;
+        const reserved = (COUNT - 1) * SPACING + (stepH * (1 + maxScale())) / 2;
         stairEl.style.setProperty("--stair-h", `${Math.ceil(reserved)}px`);
       };
 
@@ -311,51 +317,62 @@ export function Showcase() {
         });
       };
 
-      measure();
-      place();
+      /* Everything the orbit adds, undone together; empty on a phone. */
+      const undo: Array<() => void> = [];
 
-      /*
-       * useGSAP runs in useLayoutEffect, which in dev can beat the CSS module
-       * to the DOM. A step with no width yet measures as the full section,
-       * which makes radiusForViewport return 0 and lays the staircase flat on
-       * the axis. Watching the step re-measures the moment the real width
-       * lands, and covers the font swap and container resizes for free.
-       */
-      const ro = new ResizeObserver(() => {
+      if (!phone) {
         measure();
         place();
-      });
-      ro.observe(steps[0]);
 
-      /* A viewport change can move the radius without changing the step width
-       * (below the clamp's floor), so the window still needs watching too. */
-      const onResize = () => {
-        measure();
-        place();
-      };
-      window.addEventListener("resize", onResize);
+        /*
+         * useGSAP runs in useLayoutEffect, which in dev can beat the CSS module
+         * to the DOM. A step with no width yet measures as the full section,
+         * which makes radiusForViewport return 0 and lays the staircase flat on
+         * the axis. Watching the step re-measures the moment the real width
+         * lands, and covers the font swap and container resizes for free.
+         */
+        const ro = new ResizeObserver(() => {
+          measure();
+          place();
+        });
+        ro.observe(steps[0]);
+        undo.push(() => ro.disconnect());
 
-      /*
-       * The turn runs from SPIN_START_PCT down to the section leaving the top
-       * of the screen. No pin: the page keeps scrolling normally and the
-       * staircase turns underneath it.
-       */
-      const spinTween = gsap.to(spin, {
-        t: 1,
-        ease: EASE.none,
-        onUpdate: place,
-        scrollTrigger: {
-          trigger: sectionEl,
-          start: `top ${SPIN_START_PCT}%`,
-          end: "bottom top",
-          scrub: SCROLL.scrub,
-          invalidateOnRefresh: true,
-          onRefresh: () => {
-            measure();
-            place();
+        /* A viewport change can move the radius without changing the step width
+         * (below the clamp's floor), so the window still needs watching too. */
+        const onResize = () => {
+          measure();
+          place();
+        };
+        window.addEventListener("resize", onResize);
+        undo.push(() => window.removeEventListener("resize", onResize));
+
+        /*
+         * The turn runs from SPIN_START_PCT down to the section leaving the top
+         * of the screen. No pin: the page keeps scrolling normally and the
+         * staircase turns underneath it.
+         */
+        const spinTween = gsap.to(spin, {
+          t: 1,
+          ease: EASE.none,
+          onUpdate: place,
+          scrollTrigger: {
+            trigger: sectionEl,
+            start: `top ${SPIN_START_PCT}%`,
+            end: "bottom top",
+            scrub: SCROLL.scrub,
+            invalidateOnRefresh: true,
+            onRefresh: () => {
+              measure();
+              place();
+            },
           },
-        },
-      });
+        });
+        undo.push(() => {
+          spinTween.scrollTrigger?.kill();
+          spinTween.kill();
+        });
+      }
 
       /*
        * The reveal. Nothing is hidden in markup or CSS — only here, and only
@@ -424,14 +441,11 @@ export function Showcase() {
       if (settled.length) gsap.set(settled, { "--in": 1, "--ty": "0px" });
 
       return () => {
-        ro.disconnect();
-        window.removeEventListener("resize", onResize);
+        undo.forEach((fn) => fn());
         batch.forEach((t) => t.kill());
-        spinTween.scrollTrigger?.kill();
-        spinTween.kill();
       };
     },
-    { scope: section, dependencies: [reduced], revertOnUpdate: true },
+    { scope: section, dependencies: [reduced, phone], revertOnUpdate: true },
   );
 
   return (
@@ -467,7 +481,7 @@ export function Showcase() {
               data-step=""
               data-kind="picture"
               className={`${s.step} ${s.picture}`}
-              style={{ "--i": i } as CSSProperties}
+              style={{ "--i": i, "--row": (i >> 1) + 1 } as CSSProperties}
             >
               <div
                 className={s.frame}
@@ -488,7 +502,7 @@ export function Showcase() {
                   src={asset(step.src)}
                   alt={step.alt}
                   fill
-                  sizes="(max-width: 900px) 46vw, 28vw"
+                  sizes="(max-width: 600px) 46vw, (max-width: 900px) 46vw, 28vw"
                   /*
                    * Eager: the intro's zoom is the time there is to fetch
                    * these. Left lazy they are only asked for as the section
@@ -506,7 +520,7 @@ export function Showcase() {
               data-step=""
               data-kind="note"
               className={`${s.step} ${s.note}`}
-              style={{ "--i": i } as CSSProperties}
+              style={{ "--i": i, "--row": (i >> 1) + 1 } as CSSProperties}
             >
               <span className={s.noteEyebrow}>{step.eyebrow}</span>
               <p className={s.noteBody}>{step.body}</p>

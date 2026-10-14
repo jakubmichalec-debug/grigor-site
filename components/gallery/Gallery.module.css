@@ -187,3 +187,14 @@
     min-width: 42vw;
   }
 }
+
+@media (max-width: 700px) {
+  /*
+   * The link is ten pixels of type. Padding grows the target to a finger and
+   * the matching negative margin leaves the header's layout where it was.
+   */
+  .back {
+    padding: 17px 12px;
+    margin: -17px -12px;
+  }
+}

@@ -233,3 +233,17 @@ export function contains(outer: Rect, inner: Rect): boolean {
     inner.y + inner.h <= outer.y + outer.h
   );
 }
+
+/**
+ * Phones get the same five phases on a shorter runway. Scrub maps scroll onto
+ * the timeline linearly, so squeezing the scroll distance by one factor keeps
+ * every phase in proportion; only the speed of the scrub changes. The hold is
+ * still ~80vh, plenty to step through five clips.
+ */
+export const PHONE_SCROLL = {
+  scale: 0.5,
+  /* 100 for the stage, plus the scaled timeline and tail, less the early start. */
+  sectionVh: Math.ceil(
+    100 + (TIMELINE_VH + SCROLL_PLAN.tailVh) * 0.5 - SCROLL_PLAN.drawEnterPct,
+  ),
+} as const;

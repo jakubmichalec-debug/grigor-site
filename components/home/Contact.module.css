@@ -79,3 +79,17 @@
 .metaLink:focus-visible {
   color: var(--accent-deep);
 }
+
+@media (max-width: 600px) {
+  /* Less air around a short section on a phone, where the screen is the scarce thing. */
+  .section {
+    padding-block: 56px;
+  }
+
+  /* Twelve pixels of type: the padding grows the target, the margin hides the growth. */
+  .metaLink {
+    display: inline-block;
+    padding: 12px 8px;
+    margin: -12px -8px;
+  }
+}

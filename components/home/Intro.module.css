@@ -399,3 +399,35 @@
     display: none;
   }
 }
+
+/*
+ * Portrait phones. 16:9 tiles at this width make a wall about a third of the
+ * screen tall, leaving black above and below. Portrait tiles make it taller
+ * than the screen as well as wider, so it bleeds past all four edges. The hero
+ * shares the slot's ratio or it would no longer sit exactly over it; the zoom
+ * measures the hero in layout, so it covers whatever shape this makes.
+ */
+@media (max-width: 900px) and (orientation: portrait) {
+  .wall {
+    --wall-w: 185vw;
+  }
+
+  .tile,
+  .slot,
+  .hero {
+    aspect-ratio: 9 / 16;
+  }
+
+  /* Taller than the screen too now, so centre the track vertically as well. */
+  .parallax {
+    align-content: center;
+  }
+
+  .stage[data-reduced="true"] .parallax {
+    align-content: normal;
+  }
+
+  .stage[data-reduced="true"] .hero {
+    aspect-ratio: auto;
+  }
+}

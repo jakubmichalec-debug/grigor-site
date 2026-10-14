@@ -525,10 +525,48 @@
  * too short for a stacked card, which has to fit inside the screen to stick.
  */
 @media (max-width: 600px) and (orientation: portrait) {
+  /*
+   * Shorter runway. The cards are sized by their content here rather than by
+   * two thirds of the screen — that height left a hole between the button and
+   * the attribution — and each arrives after a tenth of a screen, not a quarter.
+   * They still stick one step apart, so the deck still forms. The bottom
+   * padding is the last card's travel (see .stack above) and a card is shorter
+   * than the screen, so it needs far less of it.
+   */
+  .stack {
+    --card-h: 0px;
+    gap: 10vh;
+    margin-top: 48px;
+    padding-bottom: 8vh;
+  }
+
+  /* Less lead-in above the headline, and a tighter gap down to the button. */
+  .body {
+    padding-top: 72px;
+    gap: 28px;
+  }
+
+  /*
+   * The headline fills the width here, so a frame placed beside it lands on a
+   * word. Two stay, parked in the padding above the type and kept clear of it
+   * by a fixed top; the rest are dropped rather than left to cover the text.
+   */
+  .scatterFrame:nth-child(n + 3) {
+    display: none;
+  }
+
+  .scatterFrame:nth-child(1),
+  .scatterFrame:nth-child(2) {
+    top: 12px;
+    width: 21%;
+  }
+
   .card {
     grid-template-columns: minmax(0, 1fr);
-    /* The spare height goes to the attribution's row, which keeps it at the foot. */
-    grid-template-rows: auto auto auto 1fr;
+    /* Content-sized rows; the attribution sits last, under the button. */
+    grid-template-rows: auto auto auto auto;
+    gap: 22px;
+    padding: 28px 24px 26px;
   }
 
   /*
